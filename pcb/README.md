@@ -81,40 +81,38 @@ After you've drawn the PCB, commit:
 - [ ] Visually verify GND pour completeness on B.Cu.
 - [ ] Visually verify the +14V_SW pour reaches TAS5805M Vcc and buck
       VIN+ with adequate copper (≥ 0.8 mm equivalent or pour zone).
-- [ ] Verify the LED ratsnest shows GPIO38 connected — if KiCad shows
-      U1 pin 15 as a no-connect, your Seeed footprint version doesn't
-      include the bottom pad. Drop a small via on the carrier PCB under
-      the module's GPIO38 bottom pad and route LED_DRV from there.
 - [ ] Verify nothing routes under the XIAO ESP32-S3 antenna (opposite
       end from USB-C).
 - [ ] XT60 polarity at J_BAT matches the connector keying.
 - [ ] J_BAL pin 1 = pack negative; pin 5 = pack positive (RC LiPo
       standard order). Match your balance harness.
 - [ ] IP2368 module pinout matches what `gen_netlist.py` declares —
-      different vendors use different pad layouts. If yours differs,
-      edit the U4 block in `gen_netlist.py` and re-run.
-- [ ] TAS5805M breakout pinout (10 control + 4 speaker) matches what
-      `gen_netlist.py` declares. DFRobot DFR0721 is the reference; clones
-      may differ.
+      AliExpress IP2368 modules vary. If yours differs, edit the U4 block
+      and re-run.
+- [ ] PCM5102A breakout (U2) pin order matches what `gen_netlist.py`
+      declares. **Pin order varies by vendor** — go by silkscreen labels,
+      not pin numbers. Update `gen_netlist.py` if your specific board's
+      pin layout differs.
+- [ ] TPA3116D2 module (U2A) pin layout matches. Many vendors use
+      different pin orders or terminal-block-only layouts.
 - [ ] Order of pins on each JST (J_PWR / J_VOL / J_BTN / J_LED / J_BAL)
       matches your harnesses.
 
 ## Known limitations / things to verify on the bench
 
-- **TAS5805M breakout pinout**: the netlist models a generic 14-pin header
-  layout. The DFRobot DFR0721 silkscreen is the reference. If your breakout
-  arrives with a different pin order (especially SDA/SCL position or which
-  side speaker outputs come out), edit the U2 block in `gen_netlist.py`,
-  re-run, and re-import.
-- **IP2368 module variants**: pinout in `MODULES.md` is for the most common
-  hobby form factor. Some modules expose 6 pins, others 8 (split charge /
-  discharge). Confirm against your actual module's silkscreen.
-- **GPIO38 LED bottom-pad access**: requires a via on the carrier PCB
-  under the module's bottom pad. The Seeed `XIAO-ESP32-S3` footprint
-  includes the bottom pad; if your library version doesn't, you can
-  reassign the LED to the unused GPIO44/D7 (currently I²C SCL — swap
-  with a different free GPIO).
-- **U1 pin numbering**: the netlist uses logical pin numbers 1–15. KiCad
-  will match these to whatever the Seeed footprint expects — verify the
-  ratsnest after import; if the labels look wrong, your Seeed library
-  version uses different pad numbering.
+- **PCM5102A breakout pinout**: the netlist uses a generic 10-pin
+  layout (VIN, GND, BCK, LCK, DIN, SCK, LOUT, ROUT, AGND, XSMT). Many
+  hobby boards have 13–15 pins broken out. The `gen_netlist.py` mapping
+  is a starting point — verify against your specific board's silkscreen
+  before laying out, and update the U2 block if needed.
+- **TPA3116D2 module variants**: there are dozens of "TPA3116D2 2x50W"
+  layouts. The netlist models a 9-pin header. Some boards use screw
+  terminals exclusively, some have an integrated volume pot. Treat the
+  netlist's U2A as a logical model — the physical wiring on your board
+  may need adapter pigtails.
+- **IP2368 module variants**: AliExpress modules vary widely. The 6-pin
+  model in `gen_netlist.py` is a typical layout. Confirm against your
+  actual module's silkscreen.
+- **U1 pin numbering**: the netlist uses logical pin numbers 1–14
+  (D0–D10 plus 3V3/GND/5V). KiCad will match these to whatever the
+  Seeed footprint expects — verify the ratsnest after import.

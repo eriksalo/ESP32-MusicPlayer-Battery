@@ -11,10 +11,10 @@ the same connections and emits a KiCad-importable `.net` file.
 
 | Net | Source | Loads | Notes |
 |-----|--------|-------|-------|
-| **VBAT_4S** | 4S pack `+` (after BMS P+) → SW1 common | SW1 throw → +14V_SW (TAS5825M Vcc, U5 buck VIN) | ~14.8 V nominal, 16.8 V max. SW1 must be rated ≥ 5 A. |
-| **+14V_SW** | SW1 throw | TAS5825M U2 Vcc, buck U5 VIN, C1 (1000 µF), C2 (100 nF) | Main power rail. |
-| **+5V** | Buck U5 VOUT | XIAO U1 5V, microSD U3 VCC, C4 (10 µF) | Trim buck to **exactly 5.0 V** before connecting XIAO. |
-| **+3V3** | XIAO U1 3V3 (LDO output) | RV1 high lug, R2/R3 (I²C pull-ups), R4 (PDN pull-up), C5, C6, C7 | XIAO LDO; ~500 mA budget. |
+| **VBAT_RAW** | 4S pack `+` (BMS P+) | SW1 in, IP2368 BAT+ (charge path), J_BAL pin 5 | Pack output node. ~14.8 V nominal. |
+| **+14V_SW** | SW1 throw | TPA3116D2 U2A Vcc, buck U5 VIN, C1 (1000 µF), C2 (100 nF) | Main power rail. SW1 must be rated ≥ 5 A. |
+| **+5V** | Buck U5 VOUT | XIAO U1 5V, microSD U3 VCC, PCM5102A U2 VIN, C3 (10 µF) | Trim buck to **exactly 5.0 V** before connecting downstream. |
+| **+3V3** | XIAO U1 3V3 (LDO output) | RV1 high lug, C4 (100 nF) | XIAO LDO; ~500 mA budget. |
 | **GND** | BMS P-, IP2368 GND, all module GNDs | Everything else | Single uninterrupted plane on B.Cu, stitched with vias. |
 
 ## Charging path (USB-C PD)
@@ -38,29 +38,30 @@ and the IP2368 + BMS modules each plug into one. Or the BMS can be a
 
 ## Audio signal nets
 
-### I²S (XIAO ↔ TAS5825M)
+### I²S (XIAO → PCM5102A DAC)
 
 | Net | From | To |
 |-----|------|----|
-| `I2S_BCLK`  | U1 GPIO4 (D3) | U2 BCLK |
-| `I2S_LRCLK` | U1 GPIO5 (D4) | U2 LRCLK |
-| `I2S_DOUT`  | U1 GPIO6 (D5) | U2 SDIN |
+| `I2S_BCLK`  | U1 GPIO4 (D3) | U2 BCK |
+| `I2S_LRCLK` | U1 GPIO5 (D4) | U2 LCK |
+| `I2S_DOUT`  | U1 GPIO6 (D5) | U2 DIN |
 
-### I²C control (XIAO ↔ TAS5825M)
-
-| Net | From | To | Pull-up |
-|-----|------|----|---|
-| `I2C_SDA` | U1 GPIO43 (D6) | U2 SDA | R2 (4.7 kΩ) → +3V3 |
-| `I2C_SCL` | U1 GPIO44 (D7) | U2 SCL | R3 (4.7 kΩ) → +3V3 |
-
-### Speaker outputs
+### Analog audio (PCM5102A → TPA3116D2)
 
 | Net | From | To |
 |-----|------|----|
-| `SPK_L_PLUS`  | U2 SPK_L+ | J1 pin 1 → left speaker LS1 `+` |
-| `SPK_L_MINUS` | U2 SPK_L- | J1 pin 2 → left speaker LS1 `-` |
-| `SPK_R_PLUS`  | U2 SPK_R+ | J2 pin 1 → right speaker LS2 `+` |
-| `SPK_R_MINUS` | U2 SPK_R- | J2 pin 2 → right speaker LS2 `-` |
+| `AUDIO_L`  | U2 LOUT | U2A L_IN |
+| `AUDIO_R`  | U2 ROUT | U2A R_IN |
+| `AUDIO_GND` | U2 AGND | U2A AGND_IN | (tied to main GND at one star point) |
+
+### Speaker outputs (TPA3116D2 → 2 speakers, BTL stereo)
+
+| Net | From | To |
+|-----|------|----|
+| `SPK_L_PLUS`  | U2A SPK_L+ | J1 pin 1 → left speaker LS1 `+` |
+| `SPK_L_MINUS` | U2A SPK_L- | J1 pin 2 → left speaker LS1 `-` |
+| `SPK_R_PLUS`  | U2A SPK_R+ | J2 pin 1 → right speaker LS2 `+` |
+| `SPK_R_MINUS` | U2A SPK_R- | J2 pin 2 → right speaker LS2 `-` |
 
 ### microSD (SPI)
 
@@ -80,32 +81,27 @@ and the IP2368 + BMS modules each plug into one. Or the BMS can be a
 | (RV1 lug 3) | +3V3 | RV1 lug 3 |
 | `BTN_N` | SW2 pin 1 | U1 GPIO2 (D1) |
 | (SW2 pin 2) | GND | SW2 pin 2 |
-| `LED_DRV` | U1 GPIO38 (bottom pad) | R1 → D1 anode |
+| `LED_DRV` | U1 GPIO43 (D6) | R1 → D1 anode |
 | (D1 cathode) | GND | — |
 
-## Static tie-offs on TAS5825M (U2)
+## Static tie-offs on PCM5102A (U2)
 
-| Pin | Tied to | Why |
-|-----|---------|-----|
-| `PDN` | +3V3 via R4 (10 kΩ) | Always-on, no GPIO control |
-| `ADR` | GND | I²C address 0x4C |
-| `FAULTZ` | NC (or to a free GPIO if you want fault monitoring) | Open-drain status output |
+PCM5102A breakouts have FLT, DEMP, XSMT, FMT, SCK pins typically
+**hardwired by the breakout vendor**. Default strapping (FLT=GND,
+DEMP=GND, XSMT=VCC, FMT=GND, SCK=GND) gives I²S mode, normal filter, no
+de-emphasis, un-muted. Don't change unless the breakout silkscreen
+specifically asks. **No netlist entries needed for these.**
 
 ## Decoupling and passives
 
 | Ref | Value | Between | Placement |
 |-----|-------|---------|-----------|
-| C1 | 1000 µF / 25 V (electrolytic) | +14V_SW — GND | Bulk on amp Vcc rail; place close to U2 Vcc. |
+| C1 | 1000 µF / 25 V (electrolytic) | +14V_SW — GND | Bulk on amp Vcc rail; place close to U2A Vcc. |
 | C2 | 100 nF / 25 V | +14V_SW — GND | HF bypass adjacent to C1. |
-| C3 | 22 µF / 25 V | +14V_SW — GND | At U2 Vcc pin (some breakouts have this on board — verify). |
-| C4 | 10 µF / 10 V | +5V — GND | Buck U5 output bulk. |
-| C5 | 100 nF | +3V3 — GND | XIAO U1 3V3 pin. |
-| C6 | 100 nF | I²C_SDA — GND | ESD bypass (optional). |
-| C7 | 100 nF | I²C_SCL — GND | ESD bypass (optional). |
+| C3 | 10 µF / 10 V | +5V — GND | Buck U5 output bulk. |
+| C4 | 100 nF | +3V3 — GND | XIAO U1 3V3 pin. |
+| C5, C6 *(optional)* | 1 µF film | AUDIO_L/R coupling | DC-block between PCM5102A and TPA3116D2 — populate only if the TPA3116D2 module doesn't already DC-block its inputs. |
 | R1 | 470 Ω | LED_DRV — D1 anode | LED current limit. |
-| R2 | 4.7 kΩ | I²C_SDA — +3V3 | I²C pull-up (omit if breakout has its own). |
-| R3 | 4.7 kΩ | I²C_SCL — +3V3 | I²C pull-up (omit if breakout has its own). |
-| R4 | 10 kΩ | TAS5825M PDN — +3V3 | Hold amp out of shutdown. |
 
 ## Connector map
 
@@ -124,12 +120,12 @@ and the IP2368 + BMS modules each plug into one. Or the BMS can be a
 
 ## Net counts (summary)
 
-- **Power nets**: 5 (VBAT_4S, +14V_SW, +5V, +3V3, GND)
-- **Charging path**: 5 (BAT_PACK_PLUS/MINUS, BAL_1..3)
+- **Power nets**: 5 (VBAT_RAW, +14V_SW, +5V, +3V3, GND)
+- **Charging path**: 3 (BAL_1..3) + GND + BAT+
 - **Signal nets**: 17
   - 3 I²S (BCLK, LRCLK, DOUT)
-  - 2 I²C (SDA, SCL)
+  - 2 analog audio (AUDIO_L, AUDIO_R) + 1 audio ground
   - 4 Speaker (L±, R±)
   - 4 SD SPI (CS, MOSI, MISO, SCK)
-  - 4 Controls (VOL_WIPER, BTN_N, LED_DRV, plus LED_A intermediate)
+  - 4 Controls (VOL_WIPER, BTN_N, LED_DRV, LED_A)
 - **Total non-power nets**: ~17. Comfortably routable on 2 layers at 110 × 75 mm.

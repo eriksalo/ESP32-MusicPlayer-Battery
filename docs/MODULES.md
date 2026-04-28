@@ -40,64 +40,70 @@ PCB to access the LED line.
 
 ---
 
-## U2 — TAS5825M stereo I²S amp breakout
+## U2 — PCM5102A I²S DAC breakout (often "GY-PCM5102")
 
-**Mechanical**: varies by manufacturer. Adafruit's TAS5825M breakout is
-~36 × 22 mm with two 2.54 mm 1×6 + 1×4 headers. AliExpress modules are
-similar size with all signals on a single 2 × 7 or 1 × 14 header.
+**Mechanical**: typical hobby boards are ~25 × 16 mm with a 2 × 5 (10-pin)
+header on the long edge. **Pin order varies between vendors** — go by
+silkscreen, not pin number.
 
-```
-    Adafruit-style breakout (verify against your specific board):
-
-       ┌────────────────────────────────────┐
-       │ 2-pin terminal block: SPK_L+/L-    │
-       │                                    │
-       │       TAS5825M                     │
-       │                                    │
-       │  Vcc GND PDN ADR  SDIN BCLK LRCLK  │
-       │  ┌──┬──┬──┬──┐    ┌──┬──┬────┐    │
-       │  │  │  │  │  │    │  │  │    │    │
-       │  └──┴──┴──┴──┘    └──┴──┴────┘    │
-       │       │  │            ↑            │
-       │       │  │       I²S audio in      │
-       │       │  └─ I²C addr select        │
-       │       └──── shutdown               │
-       │  SDA SCL FAULTZ (additional pins)  │
-       │  ┌──┬──┬──┐                       │
-       │                                    │
-       │ 2-pin terminal block: SPK_R+/R-    │
-       └────────────────────────────────────┘
-```
-
-**Pin function summary** (pin order varies — go by silkscreen label):
+**Pin function summary** (typical "GY-PCM5102" layout):
 
 | Label | Connection in this design |
 |-------|---------------------------|
-| Vcc / VBAT | 4S rail (~14 V nominal, 16.8 V max) — **directly from BMS output via SW1** |
+| VIN | +5 V rail (the breakout has its own LDO down to 3V3 internally) |
 | GND | Common ground |
-| PDN (active-low shutdown) | Tie to **+3V3 via R4 (10 kΩ)** — chip stays always-on; no GPIO needed |
-| ADR | Tie to **GND** (I²C addr 0x4C). To 3V3 → 0x4D. |
-| SDIN | I²S data in ← XIAO `PIN_I2S_DOUT` (GPIO6) |
-| BCLK | I²S bit clock ← XIAO `PIN_I2S_BCLK` (GPIO4) |
-| LRCLK | I²S word select ← XIAO `PIN_I2S_LRCLK` (GPIO5) |
-| SDA | I²C data ↔ XIAO `PIN_I2C_SDA` (GPIO43). 4.7 kΩ pull-up to **+3V3** (R2). |
-| SCL | I²C clock ← XIAO `PIN_I2C_SCL` (GPIO44). 4.7 kΩ pull-up to **+3V3** (R3). |
-| FAULTZ | open-drain fault output. Optional — leave NC, or pull to 3V3 and route to a free GPIO if you want to read fault status. |
+| BCK | I²S bit clock ← XIAO `PIN_I2S_BCLK` (GPIO4) |
+| LCK / LRC | I²S word select ← XIAO `PIN_I2S_LRCLK` (GPIO5) |
+| DIN | I²S data in ← XIAO `PIN_I2S_DOUT` (GPIO6) |
+| SCK | tie to **GND** (master clock not used; PCM5102A generates internally) |
+| LOUT | analog left out → TPA3116D2 L_IN |
+| ROUT | analog right out → TPA3116D2 R_IN |
+| AGND | analog ground (tie to GND star) |
+
+> **Strapping** on the back of the breakout: **FLT, DEMP, XSMT, FMT** are
+> typically hardwired by the breakout vendor. The default strapping
+> (FLT=GND, DEMP=GND, XSMT=VCC, FMT=GND) works perfectly for our use
+> (I²S, normal filter, no de-emphasis, un-muted). Don't second-guess
+> it unless you're getting silence.
+
+**Performance**: 24-bit / 384 kHz capable, 112 dB SNR. Way more than the
+TPA3116D2 amp can use, so it's transparent in this chain.
+
+---
+
+## U2A — TPA3116D2 stereo class-D amp module
+
+**Mechanical**: typical "TPA3116D2 2x50W stereo" module is ~70 × 50 mm.
+Some have an on-board volume pot (we ignore it) and screw terminals;
+others have header pins. Pin order varies by vendor.
+
+**Pin function summary** (typical board with screw / pin headers):
+
+| Label | Connection in this design |
+|-------|---------------------------|
+| VCC / +VS | +14 V_SW (4S rail, after SW1) |
+| GND | Common ground |
+| L_IN  / IN_L | Left analog input ← PCM5102A LOUT |
+| R_IN  / IN_R | Right analog input ← PCM5102A ROUT |
+| AGND  / IN_GND | Analog input ground (tie to GND star at one point) |
 | SPK_L+, SPK_L- | Left speaker (BTL — do not ground either side) |
 | SPK_R+, SPK_R- | Right speaker (BTL — do not ground either side) |
 
-> Some breakouts already include 4.7 kΩ I²C pull-ups on SDA/SCL — check
-> with a multimeter before populating R2/R3. Two pull-ups in parallel won't
-> cause harm but lowers the bus impedance more than necessary.
+**Important**: TPA3116D2 modules are **bridge-tied load (BTL)** on the
+output. Don't ground either side of the speaker.
 
-**Performance budget at 14 V**: ~15 W RMS into 4 Ω per channel BTL, or
-~25 W per channel briefly under transient. Headroom is comfortable for
-"loud" use of 3″ full-range drivers.
+**On-board volume pot**: most modules ship with a fixed-gain mode (gain
+selected by jumper) plus a soldered-on log pot for additional analog
+trim. We use **software volume** in the audioI2S library — leave the
+on-board pot at maximum and don't worry about it.
 
-**I²C address**: 0x4C (ADR pin → GND) by default. The init code in
-`src/main.cpp` writes a small register sequence (page 0 / book 0,
-DEVICE_CTRL_2 = Play, DIG_VOL = -24 dB) at boot. Defaults handle BTL
-stereo and auto-detect of sample rate.
+**Performance budget at 14 V** into 4 Ω BTL: ~25 W per channel
+continuous, ~35 W peak. The label often says "2 × 50 W" because that's
+the marketing figure at higher Vcc and lower-Z load. For our 4 Ω 25 W
+speakers, we get clean output well under clipping.
+
+**EMI**: TPA3116D2 modules already include the LC output filter, so
+class-D switching noise is cleaned up before the speaker leads.
 
 ---
 

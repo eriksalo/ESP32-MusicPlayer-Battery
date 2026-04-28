@@ -1,8 +1,8 @@
 # Bill of Materials
 
-**Configuration**: 4S 18650 + IP2368 USB-C PD charger + TAS5805M stereo I²S
-amp + 2 × 4 Ω full-range drivers, ~30 W total. Handheld form factor
-(~22 × 13 × 8 cm).
+**Configuration**: 4S 18650 + IP2368 USB-C PD charger + PCM5102A I²S DAC +
+TPA3116D2 stereo class-D amp + 2 × 4 Ω full-range drivers, ~30 W total.
+Handheld form factor (~22 × 13 × 8 cm).
 
 Most lines have **two purchase paths**: a primary (manufacturer page or
 Western distributor) and a generic alternative (AliExpress / search). The
@@ -22,13 +22,23 @@ weeks. Prices in USD ~2026, indicative only.
 
 | Ref | Part | Primary source | Generic / cheap | ~$ |
 |-----|------|----------------|-----------------|-----|
-| **U1** | Seeed XIAO ESP32-S3 | [Seeed Studio (canonical product page)](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) · [DigiKey search "XIAO ESP32-S3"](https://www.digikey.com/en/products/result?keywords=XIAO+ESP32-S3) · [Mouser search](https://www.mouser.com/c/?q=XIAO%20ESP32-S3) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=Seeed+XIAO+ESP32-S3) (verify Bazaar/Seeed seller) | $7.50 |
-| **U2** | **TAS5805M** I²S stereo amp breakout | [DFRobot Fermion DFR0721 product page](https://www.dfrobot.com/product-2614.html) · [DigiKey listing of DFR0721](https://www.digikey.com/en/products/result?keywords=DFR0721) · [Amazon "DFRobot TAS5805M"](https://www.amazon.com/s?k=DFRobot+TAS5805M) | [AliExpress "TAS5805M I2S amplifier"](https://www.aliexpress.com/wholesale?SearchText=TAS5805M+I2S+amplifier+30W) | $15 |
-| | *Alternate*: TAS5825M breakout | only AliExpress (no Western distributor stocks the breakout): [search](https://www.aliexpress.com/wholesale?SearchText=TAS5825M+I2S+amplifier) | | $5–10 |
-| **U3** | microSD card breakout (SPI, 3V3) | [Adafruit #4682 product page](https://www.adafruit.com/product/4682) · [DigiKey search](https://www.digikey.com/en/products/result?keywords=adafruit%204682) | [AliExpress "Micro SD card module 3V3"](https://www.aliexpress.com/wholesale?SearchText=micro+SD+card+module+3V3) | $4 / $1 |
-| **U4** | IP2368 USB-C PD all-in-one 4S charger module (100 W) | [DFRobot DFR1015 product page](https://www.dfrobot.com/product-2700.html) (verify it's the IP2368 / 4S variant when ordering) | [AliExpress "IP2368 4S 100W bidirectional"](https://www.aliexpress.com/wholesale?SearchText=IP2368+4S+100W+bidirectional+module) | $12 / $8 |
-| **U5** | 5 V buck converter module (4 S → 5 V @ 1 A) | [Pololu D24V10F5 product page](https://www.pololu.com/product/2831) · [DigiKey search "MP1584 module"](https://www.digikey.com/en/products/result?keywords=MP1584+module) | [AliExpress "MP1584 mini buck"](https://www.aliexpress.com/wholesale?SearchText=MP1584+mini+360+buck+module) | $7 / $1 |
-| **BMS** | 4S 30 A balanced Li-ion BMS (common port) | [Battery Hookup search "4S BMS"](https://batteryhookup.com/search?q=4S+BMS) · [Amazon "4S 30A BMS"](https://www.amazon.com/s?k=4S+30A+BMS+balanced) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=4S+30A+balanced+BMS+18650) | $5 |
+| **U1** | Seeed XIAO ESP32-S3 | [Seeed Studio product page](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) · [DigiKey search](https://www.digikey.com/en/products/result?keywords=XIAO+ESP32-S3) · [Mouser search](https://www.mouser.com/c/?q=XIAO%20ESP32-S3) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=Seeed+XIAO+ESP32-S3) (verify Bazaar/Seeed seller) | $7.50 |
+| **U2** | PCM5102A I²S DAC breakout (often labelled **GY-PCM5102**) | [Amazon search "PCM5102A I2S DAC"](https://www.amazon.com/s?k=PCM5102A+I2S+DAC+module) — many real listings | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=PCM5102A+I2S+DAC+module) | $4 / $2 |
+| **U2A** | TPA3116D2 stereo class-D amp module (analog input, 12-24 V) | [Amazon search "TPA3116D2 stereo amplifier board"](https://www.amazon.com/s?k=TPA3116D2+stereo+amplifier+board) | [AliExpress search "TPA3116D2 2x50W"](https://www.aliexpress.com/wholesale?SearchText=TPA3116D2+2x50W+amplifier+board) | $6 / $3 |
+| **U3** | microSD card breakout (SPI, 3V3) | [Adafruit #4682 product page](https://www.adafruit.com/product/4682) · [DigiKey search](https://www.digikey.com/en/products/result?keywords=adafruit%204682) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=micro+SD+card+module+3V3) | $4 / $1 |
+| **U4** | IP2368 USB-C PD 4S charger module (100 W) | **No verified Western distributor.** Only [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=IP2368+4S+100W+bidirectional+module). 3–4 week lead time. | (same) | $8 |
+| **U5** | 5 V buck converter module (4 S → 5 V @ 1 A) | [Pololu D24V10F5 product page](https://www.pololu.com/product/2831) | [AliExpress search "MP1584 mini buck"](https://www.aliexpress.com/wholesale?SearchText=MP1584+mini+360+buck+module) | $7 / $1 |
+| **BMS** | 4S 30 A balanced Li-ion BMS (common port) | [Battery Hookup search](https://batteryhookup.com/search?q=4S+BMS) · [Amazon search](https://www.amazon.com/s?k=4S+30A+BMS+balanced) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=4S+30A+balanced+BMS+18650) | $5 |
+
+> **Honest sourcing notes**:
+> - **U2 (PCM5102A) and U2A (TPA3116D2)**: both are real, Amazon-stocked
+>   modules. Search results are full of in-stock listings with reviews.
+> - **U4 (IP2368)**: I previously named DFRobot SKUs that don't exist.
+>   They have been removed. The IP2368 module is **AliExpress-only** —
+>   plan around the 3–4 week lead time, or substitute Path 1 (DC barrel
+>   jack + external 16.8 V CC/CV charger) from `docs/PCB_PLAN.md` if you
+>   want fully-Western sourcing. If you find a verified Western source,
+>   please update this line.
 
 ## 2. Battery and speakers
 
@@ -55,11 +65,8 @@ weeks. Prices in USD ~2026, indicative only.
 | **SW2** | 12 mm panel-mount momentary push button | [Adafruit #1439 (16 mm, similar)](https://www.adafruit.com/product/1439) · [DigiKey search "12mm panel pushbutton"](https://www.digikey.com/en/products/result?keywords=12mm+panel+pushbutton) | [AliExpress "12mm momentary panel button"](https://www.aliexpress.com/wholesale?SearchText=12mm+momentary+panel+push+button) | $0.50–2 |
 | **D1** | LED, 3 mm or 5 mm, any colour | [DigiKey search "5mm LED through-hole"](https://www.digikey.com/en/products/result?keywords=5mm+LED+through-hole) | bag from any electronics store | $0.10 |
 | **R1** | 470 Ω resistor, 0805 SMD | [DigiKey RMCF0805JT470RCT-ND](https://www.digikey.com/en/products/result?keywords=RMCF0805JT470R) | [AliExpress 0805 resistor kit](https://www.aliexpress.com/wholesale?SearchText=0805+SMD+resistor+kit) | $0.02 |
-| **R2, R3** | 4.7 kΩ resistor, 0805 — I²C pull-ups | [DigiKey 0805 4.7K](https://www.digikey.com/en/products/result?keywords=0805+4.7k+resistor) | (kit) | $0.04 |
-| **R4** | 10 kΩ resistor, 0805 — TAS PDN pull-up | (kit) | (kit) | $0.02 |
-
 > Tip: a 0805 resistor sample kit (~$10 from AliExpress / Amazon) covers
-> R1–R4 and any future tweaks, far cheaper than buying single values.
+> R1 and any future tweaks, far cheaper than buying single values.
 
 ## 5. Passives
 
@@ -67,10 +74,9 @@ weeks. Prices in USD ~2026, indicative only.
 |-----|-------|---------|---------|-----|
 | **C1** | 1000 µF / 25 V | radial electrolytic, 8 mm | [DigiKey search "1000uF 25V radial"](https://www.digikey.com/en/products/result?keywords=1000uF+25V+radial+electrolytic) | $0.50 |
 | **C2** | 100 nF / 25 V X7R | 0805 | [DigiKey search "0805 100nF 25V X7R"](https://www.digikey.com/en/products/result?keywords=0805+100nF+25V+X7R) | $0.02 |
-| **C3** | 22 µF / 25 V X7R | 1206 | [DigiKey search "1206 22uF 25V"](https://www.digikey.com/en/products/result?keywords=1206+22uF+25V+X7R) | $0.30 |
-| **C4** | 10 µF / 10 V X5R | 0805 | (kit) | $0.02 |
-| **C5–C7** | 100 nF | 0805 | (kit) | $0.02 ea |
-| **L1** *(optional, on speaker outputs)* | 22 µH ferrite + 1 µF MLCC | bead inductor + 1206 | only needed if your TAS5805M breakout doesn't already include the LC filter — check before buying | $0.50 |
+| **C3** | 10 µF / 10 V X5R | 0805 | (kit) | $0.02 |
+| **C4** | 100 nF | 0805 | (kit) | $0.02 |
+| **C5, C6** *(optional, audio coupling on PCM5102A → TPA3116D2)* | 1 µF film or X7R | 1206 | only populate if your TPA3116D2 board doesn't already DC-block the input (most do) | $0.30 ea |
 
 > Tip: a 0805 + 1206 capacitor sample kit covers C2–C7 and most future
 > tweaks for ~$15.
@@ -114,23 +120,30 @@ Carrier PCB from JLCPCB / PCBWay using design files in `pcb/` once routed.
 
 | Group | Approx total |
 |-------|--------------|
-| Active modules (U1–U5 + BMS) | $50 |
+| Active modules (U1, U2, U2A, U3, U4, U5, BMS) | $40 |
 | 4 × 18650 cells + holder | $30 |
 | Speakers (2×) | $15–50 |
 | Connectors + switch | $5 |
 | Controls + indicator | $5 |
-| Passives | $4 |
+| Passives | $3 |
 | PCB (5 pcs incl. shipping) | $20 |
-| **Total** | **~$130–165** |
+| **Total** | **~$120–155** |
 
 ## 10. Sanity checklist before you buy
 
-- [ ] **DFRobot DFR0721 is TAS5805M** (not TAS5825M, not MAX98357A — verify the part number on the breakout's silkscreen when it arrives).
-- [ ] **IP2368** (4S-capable) — IP2366 is 1S–3S only.
+- [ ] **PCM5102A breakout** has VIN, GND, BCK, LCK, DIN, LOUT, ROUT, AGND
+      on its header (some clones add SCK / FMT / XMT pins — those are
+      hardwired strapping, you can ignore or tie them per the breakout's
+      silkscreen).
+- [ ] **TPA3116D2 module** specifies **analog stereo input** (don't accept
+      a single-channel BTL "100W mono" board by mistake; we want stereo).
+- [ ] **IP2368** module: AliExpress-only with 3–4 week lead time. If you
+      can't wait, fall back to a barrel-jack + 16.8 V external charger
+      (Amazon "16.8V 4S Li-ion charger") and skip U4 entirely.
 - [ ] 4S BMS rated **≥ 30 A continuous, common-port (single P+/P-)**, with balance leads.
 - [ ] All 4 cells: **same brand, same capacity, same date code** if possible.
 - [ ] Speakers are **identical** units (same model, same impedance).
 - [ ] Switch SW1 rated **≥ 5 A**.
 - [ ] You have a **USB-C PD charger ≥ 30 W**, ideally 65 W for fast charging.
 - [ ] You have a **balance plug** (5-pin JST-XH) on order with the BMS or pack.
-- [ ] USB-C **data** cable for XIAO programming (separate from the PD charging cable).
+- [ ] USB-C **data** cable for XIAO programming.

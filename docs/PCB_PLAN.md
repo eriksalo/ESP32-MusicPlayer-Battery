@@ -62,13 +62,13 @@ Looking at the **top** of the board, USB-C ports facing **right** and
   │ │          │  │  pads   │    └───────────────────┘                 │
   │ └────┬─────┘  └─────────┘                                          │
   │      │                                                              │
-  │      │   ┌─────────────────────────┐   ┌───────────┐               │
-  │      └──▶│  TAS5825M I²S amp (U2)  │   │ buck U5   │               │
-  │ J1   ◀───┤ stereo, BTL              │   │ 14V→5V    │               │
-  │ SPK_L│   │  C1 1000µF nearby       │   └───────────┘               │
-  │      ◀───┤                          │                                │
-  │ J2       │                          │                                │
-  │ SPK_R│   └─────────────────────────┘                                │
+  │      │   ┌──────────────┐  ┌───────────────────┐  ┌───────────┐   │
+  │      └──▶│  PCM5102A    │  │ TPA3116D2 (U2A)   │  │ buck U5   │   │
+  │ J1   ◀───┤  DAC (U2)    │─▶│ stereo class-D    │  │ 14V→5V    │   │
+  │ SPK_L│   │  L+R analog  │  │ BTL out, C1 1000µF│  └───────────┘   │
+  │      ◀───┤              │  │                    │                    │
+  │ J2       └──────────────┘  │                    │                    │
+  │ SPK_R│                     └───────────────────┘                    │
   │      │                                                              │
   │      │   ┌──────────────┐    ┌────────────────┐                    │
   │      │   │  XIAO ESP32  │    │  microSD U3    │                    │
@@ -109,29 +109,29 @@ Looking at the **top** of the board, USB-C ports facing **right** and
 | **+5V** | 0.4 mm (16 mil) | < 500 mA. |
 | **+3V3** | 0.3 mm (12 mil) | < 200 mA. |
 | **I²S** (BCLK, LRCLK, DOUT) | 0.2 mm (8 mil), routed parallel | Keep all three within ~5 mm of each other and away from the antenna. |
-| **I²C** (SDA, SCL) | 0.2 mm (8 mil) | Slow signals; can route freely. Keep pull-up resistors close to TAS5825M end of the trace. |
+| **Analog audio** (AUDIO_L, AUDIO_R) | 0.2 mm (8 mil), short, **away from buck switching node** | Single-ended low-level signals; treat like analog mic-level. Run AUDIO_GND adjacent. |
 | **SPI** (SD_*) | 0.2 mm (8 mil) | Keep `SD_SCK` away from `I2S_BCLK`. |
 | **Pot, button, LED** | 0.2 mm (8 mil) | Slow signals. |
-| **Speaker outputs (SPK_L±, SPK_R±)** | **0.5 mm (20 mil)**, route adjacent | Treat each pair as a differential pair. **The TAS5825M is BTL** — both sides swing. Don't ground either. |
+| **Speaker outputs (SPK_L±, SPK_R±)** | **0.5 mm (20 mil)**, route adjacent | Treat each pair as a differential pair. **The TPA3116D2 is BTL** — both sides swing. Don't ground either. |
 
 ### EMI / cross-talk specifics
 
 1. **Antenna keep-out**: under and to the right of the antenna end of the
    XIAO ESP32-S3 module, leave a 5 mm × full-width copper-free keep-out on
    both layers. **No traces under the antenna.**
-2. **TAS5825M decoupling**: place C1 (1000 µF) and C2 (100 nF) within 5 mm
-   of the Vcc pin. C3 (22 µF) sits even closer if your breakout doesn't
-   already include it. Short, fat returns to GND.
-3. **Speaker-output discipline**: the TAS5825M is class-D BTL, switching
-   at ~384 kHz. Keep each speaker pair (L+/L-, R+/R-) tightly coupled
-   on-board, twist the off-board wires, and consider the optional LC
-   filter (L1 + 1 µF) if your breakout doesn't already have one.
-4. **I²C pull-up location**: place R2 (SDA) and R3 (SCL) close to the
-   **TAS5825M end** of the trace, not the XIAO end. Low capacitance there
-   is more important.
+2. **TPA3116D2 decoupling**: place C1 (1000 µF) and C2 (100 nF) within 5 mm
+   of the amp module's Vcc pin. Short, fat returns to GND.
+3. **Speaker-output discipline**: the TPA3116D2 is class-D BTL, switching
+   at ~400 kHz; the LC output filter is on the breakout itself, but still
+   keep each speaker pair (L+/L-, R+/R-) tightly coupled on-board and
+   twist the off-board wires.
+4. **Analog audio shielding**: the L/R analog lines between PCM5102A and
+   TPA3116D2 are the most noise-sensitive part of the chain. Keep them
+   short (< 30 mm), away from the buck switching node, and run AUDIO_GND
+   alongside as a shield.
 5. **Buck switching node**: the buck module has its own switching node
    that can radiate. Keep it physically away (≥10 mm) from the XIAO
-   antenna and from the I²S bus.
+   antenna, the analog audio lines, and the I²S bus.
 
 ## 5. Design rules (JLCPCB-compatible)
 
@@ -228,7 +228,8 @@ Recommended symbol/footprint sources:
 | Module | Library |
 |--------|---------|
 | XIAO ESP32-S3 | [Seeed_KiCad_Library](https://github.com/Seeed-Studio/OPL_Kicad_Library) |
-| TAS5825M breakout | `Connector_Generic:Conn_01x10_2.54mm` (treat as a 10-pin header — pin order matches your specific breakout) |
+| PCM5102A breakout | `Connector_Generic:Conn_01x10_2.54mm` (treat as a 10-pin header — pin order varies by vendor) |
+| TPA3116D2 module | `Connector_Generic:Conn_01x09_2.54mm` (or whatever pin count your specific module uses) |
 | microSD breakout | `Connector_Generic:Conn_01x06_2.54mm` |
 | IP2368 module | `Connector_Generic:Conn_01x06_2.54mm` (or x08 — module-dependent) |
 | Buck (MP1584 module) | `Connector_Generic:Conn_01x04_2.54mm` |

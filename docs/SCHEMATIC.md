@@ -41,35 +41,35 @@ see `pcb/README.md`).
                 ▼                                          │
               GND ─────────────── common ground bus        │
                                                             │
-   +14V_SW ───┬─── TAS5825M Vcc  (C1 1000µF + C2 100nF + C3 22µF nearby)
+   +14V_SW ───┬─── TPA3116D2 Vcc (C1 1000µF + C2 100nF nearby)
               │
               └─── Buck U5 VIN ──→ +5V ──┬── XIAO 5V pin (LDO → +3V3)
-                                          │
+                                          ├── PCM5102A VIN
                                           └── microSD VCC
 
-   +3V3 (XIAO LDO) ──┬── microSD VCC
+   +3V3 (XIAO LDO) ──┬── (microSD VCC if your breakout uses 3V3 instead of 5V)
                      ├── pot RV1 high lug
-                     ├── R2 (4.7k) → I²C SDA pull-up
-                     ├── R3 (4.7k) → I²C SCL pull-up
-                     └── R4 (10k)  → TAS5825M PDN  (always-on)
+                     └── C4 (100nF) — XIAO 3V3 decoupling
 ```
 
-## Audio (I²S + I²C)
+## Audio (digital → analog → speakers)
 
 ```
-   XIAO  ──── BCLK   (GPIO4) ──→ TAS5825M  BCLK
-   XIAO  ──── LRCLK  (GPIO5) ──→ TAS5825M  LRCLK
-   XIAO  ──── SDIN   (GPIO6) ──→ TAS5825M  SDIN
-   XIAO  ──── SDA    (GPIO43) ↔ TAS5825M  SDA   (pull-up to +3V3 via R2)
-   XIAO  ──── SCL    (GPIO44) ──→ TAS5825M  SCL   (pull-up to +3V3 via R3)
+   XIAO  ──── BCLK  (GPIO4) ──→ PCM5102A  BCK
+   XIAO  ──── LRCLK (GPIO5) ──→ PCM5102A  LCK
+   XIAO  ──── DOUT  (GPIO6) ──→ PCM5102A  DIN
 
-   +3V3 ── R4 (10k) ──→ TAS5825M  PDN     (always on)
-   GND  ──→ TAS5825M  ADR              (I²C addr 0x4C)
+   PCM5102A  LOUT ──→ TPA3116D2  L_IN
+   PCM5102A  ROUT ──→ TPA3116D2  R_IN
+   PCM5102A  AGND ──→ TPA3116D2  AGND_IN  (single-point tied to main GND)
 
-   TAS5825M  SPK_L+ ──→ J1 pin 1 ──→ Left speaker (twisted pair to chassis)
-   TAS5825M  SPK_L- ──→ J1 pin 2
-   TAS5825M  SPK_R+ ──→ J2 pin 1 ──→ Right speaker
-   TAS5825M  SPK_R- ──→ J2 pin 2
+   TPA3116D2  SPK_L+ ──→ J1 pin 1 ──→ Left speaker  (twisted pair to chassis)
+   TPA3116D2  SPK_L- ──→ J1 pin 2
+   TPA3116D2  SPK_R+ ──→ J2 pin 1 ──→ Right speaker
+   TPA3116D2  SPK_R- ──→ J2 pin 2
+
+   No I²C, no software amp init — PCM5102A is hardware-strapped on
+   the breakout, TPA3116D2 has no control interface.
 ```
 
 ## SD card (SPI)
@@ -93,7 +93,7 @@ see `pcb/README.md`).
    XIAO D1 (GPIO2, INPUT_PULLUP) ── SW2 ── GND
                        (off-board on J_BTN JST-PH 2-pin)
 
-   XIAO GPIO38 (bottom pad) ── R1 (470 Ω) ── D1 anode ── GND
+   XIAO D6 (GPIO43) ── R1 (470 Ω) ── D1 anode ── GND
                        (R1 on PCB; LED is on J_LED JST-PH 2-pin)
 ```
 

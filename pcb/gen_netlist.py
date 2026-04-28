@@ -2,8 +2,8 @@
 """
 Generate a KiCad-compatible netlist for ESP32-MusicPlayer-Battery.
 
-Configuration: 4S 18650 + IP2368 USB-C PD charger + TAS5805M (or
-TAS5825M) stereo I2S amp + buck-to-5V + microSD.
+Configuration: 4S 18650 + IP2368 USB-C PD charger + PCM5102A I2S DAC +
+TPA3116D2 stereo class-D amp + buck-to-5V + microSD.
 
 Produces:
   pcb/esp-music-player.net      KiCad netlist (importable into PCB Editor)
@@ -14,7 +14,7 @@ Usage:
 
 This script is the source of truth for both the BOM and the connection
 list. It mirrors docs/NETLIST.md. If you change firmware pins in
-include/config.h, update PIN_OF_REF here and re-run this script.
+include/config.h, update the relevant nets here and re-run.
 
 Importing into KiCad (8.x):
   1. File -> New Project -> save as pcb/esp-music-player.kicad_pro
@@ -39,7 +39,6 @@ PWR_OUT = "power_out"
 IN      = "input"
 OUT     = "output"
 BIDIR   = "bidirectional"
-OD      = "open_collector"   # for I2C / FAULTZ-style open-drain
 
 
 # ---------------------------------------------------------------------------
@@ -47,9 +46,7 @@ OD      = "open_collector"   # for I2C / FAULTZ-style open-drain
 # ---------------------------------------------------------------------------
 COMPONENTS = [
     # ----- U1: Seeed XIAO ESP32-S3 -----
-    # Pins 1-11: D0..D10 (edge), 12=3V3, 13=GND, 14=5V, 15=GPIO38 (bottom pad).
-    # Verify after import: the Seeed footprint's pad numbering should match;
-    # if not, remap in KiCad with "Edit Symbol Pin Names" or relabel here.
+    # Pins 1-11: D0..D10 (edge), 12=3V3, 13=GND, 14=5V.
     {
         "ref": "U1",
         "value": "XIAO_ESP32S3",
@@ -60,36 +57,52 @@ COMPONENTS = [
             "4":  "D3_GPIO4",   "5":  "D4_GPIO5",   "6":  "D5_GPIO6",
             "7":  "D6_GPIO43",  "8":  "D7_GPIO44",  "9":  "D8_GPIO7",
             "10": "D9_GPIO8",   "11": "D10_GPIO9",  "12": "+3V3",
-            "13": "GND",        "14": "+5V",        "15": "GPIO38_BOT",
+            "13": "GND",        "14": "+5V",
         },
         "pin_types": {
-            "12": PWR_OUT, "13": PWR_IN, "14": PWR_IN, "15": PASSIVE,
+            "12": PWR_OUT, "13": PWR_IN, "14": PWR_IN,
             **{p: PASSIVE for p in ["1","2","3","4","5","6","7","8","9","10","11"]},
         },
     },
 
-    # ----- U2: TAS5805M / TAS5825M stereo I2S amp breakout (DFR0721 style) -----
-    # 14-pin model: 10 control + 4 speaker outputs.
+    # ----- U2: PCM5102A I2S DAC breakout (typical "GY-PCM5102") -----
+    # Pin order varies between vendors; verify against silkscreen on import.
     {
         "ref": "U2",
-        "value": "TAS5805M_Breakout",
-        "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x14_P2.54mm_Vertical",
-        "desc": "TAS5805M stereo I2S class-D amp breakout (DFRobot DFR0721 or equivalent)",
+        "value": "PCM5102A_DAC",
+        "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x10_P2.54mm_Vertical",
+        "desc": "PCM5102A I2S DAC breakout (GY-PCM5102 or equivalent)",
         "pins": {
-            "1":  "VCC",    "2":  "GND",    "3":  "BCLK",    "4":  "LRCLK",
-            "5":  "SDIN",   "6":  "SDA",    "7":  "SCL",     "8":  "PDN",
-            "9":  "FAULTZ", "10": "MUTE",
-            "11": "SPK_L+", "12": "SPK_L-", "13": "SPK_R+",  "14": "SPK_R-",
+            "1": "VIN", "2": "GND", "3": "BCK", "4": "LCK", "5": "DIN",
+            "6": "SCK", "7": "LOUT", "8": "ROUT", "9": "AGND", "10": "XSMT",
         },
         "pin_types": {
             "1": PWR_IN, "2": PWR_IN,
-            "3": IN, "4": IN, "5": IN,
-            "6": BIDIR, "7": IN, "8": IN, "9": OD, "10": IN,
-            "11": OUT, "12": OUT, "13": OUT, "14": OUT,
+            "3": IN, "4": IN, "5": IN, "6": IN,
+            "7": OUT, "8": OUT, "9": PWR_IN, "10": IN,
         },
     },
 
-    # ----- U3: microSD breakout (SPI, 6-pin) -----
+    # ----- U2A: TPA3116D2 stereo class-D amp module -----
+    {
+        "ref": "U2A",
+        "value": "TPA3116D2_Amp",
+        "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x09_P2.54mm_Vertical",
+        "desc": "TPA3116D2 stereo class-D amp module (analog input, 12-24V supply)",
+        "pins": {
+            "1": "VCC", "2": "GND",
+            "3": "L_IN", "4": "AGND_IN", "5": "R_IN",
+            "6": "SPK_L+", "7": "SPK_L-",
+            "8": "SPK_R+", "9": "SPK_R-",
+        },
+        "pin_types": {
+            "1": PWR_IN, "2": PWR_IN,
+            "3": IN, "4": PWR_IN, "5": IN,
+            "6": OUT, "7": OUT, "8": OUT, "9": OUT,
+        },
+    },
+
+    # ----- U3: microSD breakout -----
     {
         "ref": "U3",
         "value": "microSD_Breakout",
@@ -99,13 +112,12 @@ COMPONENTS = [
         "pin_types": {"1":PWR_IN,"2":PWR_IN,"3":IN,"4":IN,"5":IN,"6":OUT},
     },
 
-    # ----- U4: IP2368 USB-C PD charger module (4S, all-in-one) -----
-    # 6-pin header: BAT+, BAT-, BAL1, BAL2, BAL3, GND
+    # ----- U4: IP2368 USB-C PD charger module (4S, AliExpress sourced) -----
     {
         "ref": "U4",
         "value": "IP2368_Module",
         "footprint": "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical",
-        "desc": "IP2368 USB-C PD all-in-one 4S Li-ion charger module (DFR1015 or AliExpress equivalent)",
+        "desc": "IP2368 USB-C PD all-in-one 4S Li-ion charger module (AliExpress)",
         "pins": {"1":"BAT+","2":"BAT-","3":"BAL1","4":"BAL2","5":"BAL3","6":"GND"},
         "pin_types": {"1":PWR_OUT,"2":PWR_IN,"3":PASSIVE,"4":PASSIVE,"5":PASSIVE,"6":PWR_IN},
     },
@@ -120,18 +132,17 @@ COMPONENTS = [
         "pin_types": {"1":PWR_IN,"2":PWR_IN,"3":PWR_OUT,"4":PWR_OUT},
     },
 
-    # ----- J_BAT: XT60 battery connector (main current path) -----
+    # ----- J_BAT: XT60 main battery connector -----
     {
         "ref": "J_BAT",
         "value": "XT60_Connector",
         "footprint": "Connector:XT60_Connector",
-        "desc": "XT60 main battery connector (carries +14V_RAW and GND)",
+        "desc": "XT60 main battery connector (carries pack + and GND)",
         "pins": {"1":"+","2":"-"},
         "pin_types": {"1":PWR_IN,"2":PWR_IN},
     },
 
     # ----- J_BAL: 5-pin JST-XH balance harness -----
-    # Standard RC LiPo balance order: pin 1 = pack negative, pin 5 = pack positive
     {
         "ref": "J_BAL",
         "value": "JSTXH_5pin_Balance",
@@ -146,7 +157,7 @@ COMPONENTS = [
         "ref": "J_PWR",
         "value": "PWR_SW_JSTPH2",
         "footprint": "Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical",
-        "desc": "Off-board >=5A SPST switch SW1 (battery line, between BMS P+ and +14V_SW)",
+        "desc": "Off-board >=5A SPST switch SW1 (battery line, BMS P+ → +14V_SW)",
         "pins": {"1":"SW_IN","2":"SW_OUT"},
         "pin_types": {"1":PASSIVE,"2":PASSIVE},
     },
@@ -207,26 +218,11 @@ COMPONENTS = [
      "desc": "LED current-limit resistor",
      "pins": {"1":"~","2":"~"},
      "pin_types": {"1":PASSIVE,"2":PASSIVE}},
-    {"ref": "R2", "value": "4.7k",
-     "footprint": "Resistor_SMD:R_0805_2012Metric",
-     "desc": "I2C SDA pull-up to +3V3 (omit if amp breakout has its own)",
-     "pins": {"1":"~","2":"~"},
-     "pin_types": {"1":PASSIVE,"2":PASSIVE}},
-    {"ref": "R3", "value": "4.7k",
-     "footprint": "Resistor_SMD:R_0805_2012Metric",
-     "desc": "I2C SCL pull-up to +3V3 (omit if amp breakout has its own)",
-     "pins": {"1":"~","2":"~"},
-     "pin_types": {"1":PASSIVE,"2":PASSIVE}},
-    {"ref": "R4", "value": "10k",
-     "footprint": "Resistor_SMD:R_0805_2012Metric",
-     "desc": "TAS5805M PDN pull-up to +3V3 (always-on)",
-     "pins": {"1":"~","2":"~"},
-     "pin_types": {"1":PASSIVE,"2":PASSIVE}},
 
     # ----- Capacitors -----
     {"ref": "C1", "value": "1000uF/25V",
      "footprint": "Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
-     "desc": "Bulk on +14V_SW (TAS5805M Vcc)",
+     "desc": "Bulk on +14V_SW (TPA3116D2 Vcc)",
      "pins": {"1":"~","2":"~"},
      "pin_types": {"1":PASSIVE,"2":PASSIVE}},
     {"ref": "C2", "value": "100nF",
@@ -234,29 +230,14 @@ COMPONENTS = [
      "desc": "HF bypass on +14V_SW",
      "pins": {"1":"~","2":"~"},
      "pin_types": {"1":PASSIVE,"2":PASSIVE}},
-    {"ref": "C3", "value": "22uF/25V",
-     "footprint": "Capacitor_SMD:C_1206_3216Metric",
-     "desc": "Local Vcc decoupling at TAS5805M (omit if breakout has its own)",
-     "pins": {"1":"~","2":"~"},
-     "pin_types": {"1":PASSIVE,"2":PASSIVE}},
-    {"ref": "C4", "value": "10uF",
+    {"ref": "C3", "value": "10uF",
      "footprint": "Capacitor_SMD:C_0805_2012Metric",
      "desc": "Buck output bulk on +5V",
      "pins": {"1":"~","2":"~"},
      "pin_types": {"1":PASSIVE,"2":PASSIVE}},
-    {"ref": "C5", "value": "100nF",
+    {"ref": "C4", "value": "100nF",
      "footprint": "Capacitor_SMD:C_0805_2012Metric",
      "desc": "HF decoupling at XIAO 3V3 pin",
-     "pins": {"1":"~","2":"~"},
-     "pin_types": {"1":PASSIVE,"2":PASSIVE}},
-    {"ref": "C6", "value": "100nF",
-     "footprint": "Capacitor_SMD:C_0805_2012Metric",
-     "desc": "I2C SDA ESD bypass (optional)",
-     "pins": {"1":"~","2":"~"},
-     "pin_types": {"1":PASSIVE,"2":PASSIVE}},
-    {"ref": "C7", "value": "100nF",
-     "footprint": "Capacitor_SMD:C_0805_2012Metric",
-     "desc": "I2C SCL ESD bypass (optional)",
      "pins": {"1":"~","2":"~"},
      "pin_types": {"1":PASSIVE,"2":PASSIVE}},
 ]
@@ -267,9 +248,6 @@ COMPONENTS = [
 # ---------------------------------------------------------------------------
 NETS = [
     # ---- power chain ----
-    # XT60 + and balance plug pin 5 are the same node (pack positive output).
-    # XT60 + → SW1 → +14V_SW. Also IP2368 BAT+ connects to the same pack
-    # positive node (charge path).
     ("VBAT_RAW", [
         ("J_BAT", "1"),       # XT60 +
         ("J_BAL", "5"),       # balance plug pin 5 (BAT+)
@@ -278,37 +256,36 @@ NETS = [
     ]),
     ("+14V_SW", [
         ("J_PWR", "2"),       # SW1 output
-        ("U2", "1"),          # TAS5805M Vcc
+        ("U2A", "1"),         # TPA3116D2 Vcc
         ("U5", "1"),          # buck VIN+
-        ("C1", "1"), ("C2", "1"), ("C3", "1"),
+        ("C1", "1"), ("C2", "1"),
     ]),
     ("+5V", [
         ("U5", "3"),          # buck VOUT+
         ("U1", "14"),         # XIAO 5V
-        ("U3", "1"),          # microSD VCC (some breakouts; could also be on 3V3)
-        ("C4", "1"),
+        ("U2", "1"),          # PCM5102A VIN
+        ("U3", "1"),          # microSD VCC
+        ("C3", "1"),
     ]),
     ("+3V3", [
         ("U1", "12"),         # XIAO 3V3 LDO out
         ("J_VOL", "3"),       # pot top
-        ("R2", "2"),          # I2C SDA pull-up
-        ("R3", "2"),          # I2C SCL pull-up
-        ("R4", "2"),          # TAS PDN pull-up
-        ("C5", "1"),
+        ("U2", "10"),         # PCM5102A XSMT (un-mute)
+        ("C4", "1"),
     ]),
     ("GND", [
-        ("J_BAT", "2"),       # XT60 -
-        ("J_BAL", "1"),       # balance plug pin 1 (pack -)
-        ("U4", "2"), ("U4", "6"),   # IP2368 BAT- and GND
-        ("U5", "2"), ("U5", "4"),   # buck VIN- and VOUT-
-        ("U1", "13"),         # XIAO GND
-        ("U2", "2"),          # TAS5805M GND
-        ("U3", "2"),          # microSD GND
+        ("J_BAT", "2"),
+        ("J_BAL", "1"),
+        ("U4", "2"), ("U4", "6"),
+        ("U5", "2"), ("U5", "4"),
+        ("U1", "13"),
+        ("U2", "2"), ("U2", "6"), ("U2", "9"),  # PCM5102A GND, SCK (no MCK), AGND
+        ("U2A", "2"), ("U2A", "4"),             # TPA3116D2 power GND + AGND_IN
+        ("U3", "2"),
         ("J_VOL", "1"),
         ("J_BTN", "2"),
         ("J_LED", "2"),
-        ("C1", "2"), ("C2", "2"), ("C3", "2"),
-        ("C4", "2"), ("C5", "2"), ("C6", "2"), ("C7", "2"),
+        ("C1", "2"), ("C2", "2"), ("C3", "2"), ("C4", "2"),
     ]),
 
     # ---- balance taps to IP2368 (cell junctions) ----
@@ -316,23 +293,20 @@ NETS = [
     ("BAL_2", [("U4", "4"), ("J_BAL", "3")]),
     ("BAL_3", [("U4", "5"), ("J_BAL", "4")]),
 
-    # ---- I2S audio ----
-    ("I2S_BCLK",  [("U1", "4"),  ("U2", "3")]),
-    ("I2S_LRCLK", [("U1", "5"),  ("U2", "4")]),
-    ("I2S_DOUT",  [("U1", "6"),  ("U2", "5")]),
+    # ---- I2S audio (XIAO -> PCM5102A) ----
+    ("I2S_BCLK",  [("U1", "4"), ("U2", "3")]),
+    ("I2S_LRCLK", [("U1", "5"), ("U2", "4")]),
+    ("I2S_DOUT",  [("U1", "6"), ("U2", "5")]),
 
-    # ---- I2C control ----
-    ("I2C_SDA", [("U1", "7"),  ("U2", "6"), ("R2", "1"), ("C6", "1")]),
-    ("I2C_SCL", [("U1", "8"),  ("U2", "7"), ("R3", "1"), ("C7", "1")]),
-
-    # ---- TAS5805M tie-offs ----
-    ("AMP_PDN", [("U2", "8"), ("R4", "1")]),
+    # ---- Analog audio (PCM5102A -> TPA3116D2) ----
+    ("AUDIO_L", [("U2", "7"), ("U2A", "3")]),
+    ("AUDIO_R", [("U2", "8"), ("U2A", "5")]),
 
     # ---- Speaker outputs ----
-    ("SPK_L+", [("U2", "11"), ("J1", "1")]),
-    ("SPK_L-", [("U2", "12"), ("J1", "2")]),
-    ("SPK_R+", [("U2", "13"), ("J2", "1")]),
-    ("SPK_R-", [("U2", "14"), ("J2", "2")]),
+    ("SPK_L+", [("U2A", "6"), ("J1", "1")]),
+    ("SPK_L-", [("U2A", "7"), ("J1", "2")]),
+    ("SPK_R+", [("U2A", "8"), ("J2", "1")]),
+    ("SPK_R-", [("U2A", "9"), ("J2", "2")]),
 
     # ---- microSD SPI ----
     ("SD_CS",   [("U1", "3"),  ("U3", "3")]),
@@ -343,18 +317,14 @@ NETS = [
     # ---- Controls / indicator ----
     ("VOL_WIPER", [("J_VOL", "2"), ("U1", "1")]),
     ("BTN_N",     [("J_BTN", "1"), ("U1", "2")]),
-    ("LED_DRV",   [("U1", "15"), ("R1", "1")]),    # GPIO38 bottom-pad → R1 → LED
-    ("LED_A",     [("R1", "2"),  ("J_LED", "1")]),
+    ("LED_DRV",   [("U1", "7"), ("R1", "1")]),
+    ("LED_A",     [("R1", "2"), ("J_LED", "1")]),
 ]
 
 
 # Pins we deliberately leave unconnected.
 INTENTIONALLY_UNCONNECTED = {
-    ("U1", "8"),    # GPIO44 / D7 reserved (same as before)... wait, with I2C we now use D6/D7
-                    # Actually GPIO43=D6 is SDA (pin 7) and GPIO44=D7 is SCL (pin 8). Both used.
-                    # No edge GPIOs left unused now.
-    ("U2", "9"),    # FAULTZ — open-drain status, optional
-    ("U2", "10"),   # MUTE — leave NC; software mute via DEVICE_CTRL_2
+    ("U1", "8"),   # GPIO44 / D7 — spare for future use
 }
 
 
@@ -386,9 +356,7 @@ def sanity_check():
     intentional = [u for u in unconnected if u in INTENTIONALLY_UNCONNECTED]
 
     if truly:
-        errors.append(
-            "unconnected pins: " + ", ".join(f"{r}.{p}" for r, p in truly)
-        )
+        errors.append("unconnected pins: " + ", ".join(f"{r}.{p}" for r, p in truly))
     if intentional:
         print(
             "note: leaving "
@@ -420,9 +388,9 @@ def emit_netlist():
     out.append('    (tool "gen_netlist.py")')
     out.append('    (sheet (number "1") (name "/") (tstamps "/")')
     out.append('      (title_block')
-    out.append('        (title "ESP32-MusicPlayer-Battery (4S stereo)")')
+    out.append('        (title "ESP32-MusicPlayer-Battery (4S stereo, PCM5102A + TPA3116D2)")')
     out.append('        (company "")')
-    out.append(f'        (rev "2") (date "{today}")')
+    out.append(f'        (rev "3") (date "{today}")')
     out.append('        (source "esp-music-player.kicad_sch")')
     out.append('        (comment (number "1") (value ""))')
     out.append('        (comment (number "2") (value ""))')

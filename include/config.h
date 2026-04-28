@@ -2,37 +2,31 @@
 
 // =====================================================================
 // Pin map — Seeed XIAO ESP32-S3
-// 4S 18650 + TAS5825M stereo + IP2368 USB-C PD configuration
+// 4S 18650 + IP2368 USB-C PD + PCM5102A I2S DAC + TPA3116D2 stereo amp
 // =====================================================================
 // XIAO label  GPIO   Function
 //   D0         1     Volume potentiometer (ADC1_CH0)
 //   D1         2     Momentary push button (active-low, internal pull-up)
 //   D2         3     SD card CS
-//   D3         4     I2S BCLK    -> TAS5825M SCLK
-//   D4         5     I2S LRCLK   -> TAS5825M LRCLK
-//   D5         6     I2S DOUT    -> TAS5825M SDIN
-//   D6        43     I2C SDA     -> TAS5825M SDA  (also pulled up to 3V3)
-//   D7        44     I2C SCL     -> TAS5825M SCL  (also pulled up to 3V3)
+//   D3         4     I2S BCLK    -> PCM5102A BCK
+//   D4         5     I2S LRCLK   -> PCM5102A LCK
+//   D5         6     I2S DOUT    -> PCM5102A DIN
+//   D6        43     Status LED
+//   D7        44     (free / spare for future use)
 //   D8         7     SD SCK
 //   D9         8     SD MISO
 //   D10        9     SD MOSI
 //
-// Bottom pad (accessed via via on carrier PCB under the module):
-//   PAD       38     Status LED
+// On/off switch SW1: inline between BMS P+ and the carrier PCB +14V_SW
+// rail. Slide / rocker switch must be rated >= 5A.
 //
-// On/off switch SW1: inline between 4S BMS B+ and the buck converter +
-//   amp Vcc rail. Slide switch must be rated >= 5A.
-// TAS5825M PDN: pulled high to 3V3 via 10k (always on, no GPIO needed).
-// TAS5825M FAULTZ: not connected (open-drain output, monitor optionally).
+// Audio path: XIAO I2S -> PCM5102A DAC -> analog L/R -> TPA3116D2
+//             stereo class-D amp -> 2x speakers (BTL).
 
-// --- Audio (I2S → TAS5825M) ---
+// --- Audio (I2S → PCM5102A) ---
 #define PIN_I2S_BCLK   4
 #define PIN_I2S_LRCLK  5
 #define PIN_I2S_DOUT   6
-
-// --- I2C (TAS5825M control) ---
-#define PIN_I2C_SDA   43
-#define PIN_I2C_SCL   44
 
 // --- microSD (SPI) ---
 #define PIN_SD_CS      3
@@ -43,16 +37,11 @@
 // --- Controls / indicators ---
 #define PIN_VOL_POT    1   // ADC1_CH0
 #define PIN_BUTTON     2   // active-low, INPUT_PULLUP
-#define PIN_LED       38   // bottom-pad GPIO (carrier PCB exposes via)
+#define PIN_LED       43   // edge pin D6
 
 // --- Audio behaviour ---
 #define AUDIO_VOLUME_MAX  21  // ESP32-audioI2S volume scale (0..21)
 #define MUSIC_DIR    "/music"  // top-level folder on SD; subfolders are albums
-
-// --- TAS5825M ---
-//   ADR pin tied to GND on the module = address 0x4C.
-//   Tie ADR to 3V3 for 0x4D (alternate, useful if you wire two amps).
-#define TAS5825M_I2C_ADDR  0x4C
 
 // --- Wi-Fi / web ---
 #define AP_SSID_PREFIX  "ESP-Music-Setup"

@@ -1,10 +1,11 @@
 # ESP32-MusicPlayer-Battery
 
 A portable, battery-powered stereo MP3 player built on the **Seeed XIAO
-ESP32-S3** with a **TAS5805M** I²S class-D stereo amplifier, **microSD**
-music storage, a **4S 18650** Li-ion pack, and an **IP2368** USB-C PD
-charger module. Designed for low-SMT hand assembly: most of the "hard"
-parts are pre-made breakout modules dropped onto a carrier PCB.
+ESP32-S3**, with a **PCM5102A** I²S DAC into a **TPA3116D2** stereo class-D
+amplifier, **microSD** music storage, a **4S 18650** Li-ion pack, and an
+**IP2368** USB-C PD charger module. Designed for low-SMT hand assembly:
+every "hard" part is a pre-made breakout module dropped onto a carrier
+PCB. **No on-board ICs to hand-solder beyond passives.**
 
 Status: **scaffold / unverified on hardware.** The firmware and the
 hardware spec are sound, but no prototype has been built yet. Changes are
@@ -12,8 +13,9 @@ likely once the first board is on the bench.
 
 ## Features
 
-- **Stereo MP3 / AAC / WAV / FLAC** playback from microSD via I²S → TAS5805M
-- **~2 × 15 W into 4 Ω** (BTL) into a pair of 3″–4″ full-range drivers
+- **Stereo MP3 / AAC / WAV / FLAC** playback from microSD via
+  XIAO → PCM5102A I²S DAC → TPA3116D2 class-D amp
+- **~2 × 25 W into 4 Ω** (BTL) into a pair of 3″–4″ full-range drivers
 - **4 × 18650 cells (4S, ~14.8 V nominal)** with 4S BMS protection
 - **USB-C PD charging** via IP2368 (negotiates up to 100 W) — **charges
   while playing**, like a phone or laptop
@@ -48,18 +50,18 @@ Top-level block diagram:
                   │ common port  │                ▲
                   └─────┬────────┘                │
                         │                          │ JST-XH 5-pin balance
-                       P+ ── [ SW1 ≥5 A ] ── +14V_SW ─────┬─── TAS5805M Vcc
-                                                          │       │
-                                                          │       └──► L+/L- + R+/R-
-                                                          │              ↓
-                                                          │           2 × 4 Ω
+                       P+ ── [ SW1 ≥5 A ] ── +14V_SW ─────┬─── TPA3116D2 Vcc
+                                                          │           │
+                                                          │           └─► L+/L-, R+/R-
+                                                          │                  ↓
+                                                          │                2 × 4 Ω
                                                           │
-                                                          └─── buck → 5 V ─┬─ XIAO ESP32-S3
-                                                                            │
-                                                                            └─ microSD (3V3)
+                                                          └─── buck → +5V ─┬─ XIAO ESP32-S3
+                                                                            ├─ PCM5102A DAC
+                                                                            └─ microSD
 
-   I²C  XIAO  → TAS5805M  (volume, register init)
-   I²S  XIAO  → TAS5805M  (stereo audio)
+   I²S   XIAO → PCM5102A    (digital stereo audio)
+   analog L/R PCM5102A → TPA3116D2  (DAC → amp)
    pot, button, LED ── XIAO GPIOs
 ```
 
@@ -72,7 +74,8 @@ Top-level block diagram:
   [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer),
   [WiFiManager](https://github.com/tzapu/WiFiManager),
   [ElegantOTA](https://github.com/ayushsharma82/ElegantOTA),
-  ArduinoJson, plus the built-in Wire library for the TAS5805M I²C init.
+  ArduinoJson. (No I²C / Wire library used — both audio modules are
+  fully strapped on their breakouts.)
 
 **Web UI** (`data/`): plain HTML + CSS + JS, served from LittleFS. No build step.
 
