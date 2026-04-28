@@ -1,17 +1,22 @@
 # ESP32-MusicPlayer-Battery
 
-A portable, battery-powered MP3 player built on the **Seeed XIAO ESP32-S3** with
-a **MAX98357A** I²S amplifier, **microSD** music storage, and an **IP5306**
-18650 power module. Designed for low-SMT hand assembly: most of the
-"hard" parts are pre-made breakout modules dropped onto a carrier PCB.
+A portable, battery-powered stereo MP3 player built on the **Seeed XIAO
+ESP32-S3** with a **TAS5805M** I²S class-D stereo amplifier, **microSD**
+music storage, a **4S 18650** Li-ion pack, and an **IP2368** USB-C PD
+charger module. Designed for low-SMT hand assembly: most of the "hard"
+parts are pre-made breakout modules dropped onto a carrier PCB.
 
-Status: **scaffold / unverified on hardware.** The firmware compiles against the
-listed library versions and the architecture is sound, but it has not yet been
-tested on a physical device. Changes are likely once the prototype boots.
+Status: **scaffold / unverified on hardware.** The firmware and the
+hardware spec are sound, but no prototype has been built yet. Changes are
+likely once the first board is on the bench.
 
 ## Features
 
-- **MP3 / AAC / WAV / FLAC** playback from microSD via I²S → MAX98357A
+- **Stereo MP3 / AAC / WAV / FLAC** playback from microSD via I²S → TAS5805M
+- **~2 × 15 W into 4 Ω** (BTL) into a pair of 3″–4″ full-range drivers
+- **4 × 18650 cells (4S, ~14.8 V nominal)** with 4S BMS protection
+- **USB-C PD charging** via IP2368 (negotiates up to 100 W) — **charges
+  while playing**, like a phone or laptop
 - **Wi-Fi captive portal** for first-boot setup (WiFiManager)
 - **Web UI** (responsive, mobile-friendly) — play / pause / next / volume,
   library browser, multi-file upload to SD
@@ -20,27 +25,42 @@ tested on a physical device. Changes are likely once the prototype boots.
   (short = next track, long = next album, double-tap = previous)
 - **LED status**: solid = playing, slow blink = idle, fast blink = OTA / upload,
   heartbeat = setup AP mode
-- **Single-cell 18650** battery with charge + boost + protection on one IP5306
-  module; on/off switch in series with the battery
 
 ## Hardware
 
-See [`docs/BOM.md`](docs/BOM.md) for parts list and [`docs/PINMAP.md`](docs/PINMAP.md)
-for the GPIO assignments. A wiring diagram lives in
-[`docs/SCHEMATIC.md`](docs/SCHEMATIC.md).
+See [`docs/BOM.md`](docs/BOM.md) for parts list with purchase links and
+[`docs/PINMAP.md`](docs/PINMAP.md) for GPIO assignments. Wiring diagrams
+in [`docs/SCHEMATIC.md`](docs/SCHEMATIC.md), full netlist in
+[`docs/NETLIST.md`](docs/NETLIST.md), board layout plan in
+[`docs/PCB_PLAN.md`](docs/PCB_PLAN.md).
 
 Top-level block diagram:
 
 ```
-                       ┌──────────────────────────┐
-   18650 ── [SW1] ──── │  IP5306 charge+boost     │ ── 5V ──┬─── XIAO ESP32-S3 (3V3)
-        ↑              │  (USB-C charge in)       │          │
-   protection in       └──────────────────────────┘          │
-                                                             ├── MAX98357A (Vin=5V) ── 4Ω 5W speaker
-                                                             ├── microSD socket (3V3 logic)
-                                                             ├── 10k pot → ADC
-                                                             ├── push-button → GPIO
-                                                             └── LED → GPIO
+                          ┌─────────────────┐
+   USB-C PD charger ───► │   IP2368 module  │ ──── BAT+/BAT-/BAL × 3 ─────┐
+                         │ (PD trig + 4S CC/CV│                            │
+                         │  + balance + gauge) │                          │
+                         └─────────────────────┘                          │
+                                                                          │
+                  ┌──────────────┐                                        │
+                  │ 4S BMS (30 A)│ ◄───── 4 × 18650 series + balance taps ┘
+                  │ common port  │                ▲
+                  └─────┬────────┘                │
+                        │                          │ JST-XH 5-pin balance
+                       P+ ── [ SW1 ≥5 A ] ── +14V_SW ─────┬─── TAS5805M Vcc
+                                                          │       │
+                                                          │       └──► L+/L- + R+/R-
+                                                          │              ↓
+                                                          │           2 × 4 Ω
+                                                          │
+                                                          └─── buck → 5 V ─┬─ XIAO ESP32-S3
+                                                                            │
+                                                                            └─ microSD (3V3)
+
+   I²C  XIAO  → TAS5805M  (volume, register init)
+   I²S  XIAO  → TAS5805M  (stereo audio)
+   pot, button, LED ── XIAO GPIOs
 ```
 
 ## Software
@@ -52,7 +72,7 @@ Top-level block diagram:
   [ESPAsyncWebServer](https://github.com/ESP32Async/ESPAsyncWebServer),
   [WiFiManager](https://github.com/tzapu/WiFiManager),
   [ElegantOTA](https://github.com/ayushsharma82/ElegantOTA),
-  ArduinoJson
+  ArduinoJson, plus the built-in Wire library for the TAS5805M I²C init.
 
 **Web UI** (`data/`): plain HTML + CSS + JS, served from LittleFS. No build step.
 
@@ -120,16 +140,18 @@ Two ways:
 
 If you're starting from parts, follow this order:
 
-1. **Order parts** using [`docs/BOM.md`](docs/BOM.md). Sanity-check the
-   "before you buy" list at the bottom.
-2. **Draw the schematic and PCB** in KiCad using
-   [`docs/NETLIST.md`](docs/NETLIST.md) and
-   [`docs/PCB_PLAN.md`](docs/PCB_PLAN.md). Skeleton + step-by-step in
-   [`pcb/README.md`](pcb/README.md).
+1. **Order parts** using [`docs/BOM.md`](docs/BOM.md) — every line has a
+   purchase link. Sanity-check the "before you buy" list at the bottom.
+2. **Draw the schematic and PCB** in KiCad. The netlist generator at
+   [`pcb/gen_netlist.py`](pcb/gen_netlist.py) emits an importable
+   `.net` — one click in KiCad PCB Editor populates all components and
+   ratsnest connections. See [`pcb/README.md`](pcb/README.md) for the
+   step-by-step workflow.
 3. **Order the PCB** from JLCPCB / PCBWay using the gerbers exported from
-   KiCad (see `docs/PCB_PLAN.md` §6).
-4. **Assemble** following `docs/PCB_PLAN.md` §7. Bring up on a bench supply
-   before inserting the cell.
+   KiCad (see [`docs/PCB_PLAN.md`](docs/PCB_PLAN.md) §6).
+4. **Assemble** following [`docs/PCB_PLAN.md`](docs/PCB_PLAN.md) §7.
+   Bring up on a bench supply (trim the buck to 5.0 V *first*) before
+   plugging in the 4S pack.
 5. **Flash firmware + web UI** (see *Build & flash* above).
 
 ## Roadmap / TODO

@@ -1,16 +1,25 @@
 ref,value,footprint,description
-BT1,Battery_18650,Battery:BatteryHolder_Keystone_1042_1x18650,18650 cell + Keystone 1042 holder
-C1,10uF,Capacitor_SMD:C_0805_2012Metric,Bulk decoupling at MAX98357A Vin
-C2,100nF,Capacitor_SMD:C_0805_2012Metric,HF decoupling at MAX98357A Vin
-C3,10uF,Capacitor_SMD:C_0805_2012Metric,Bulk decoupling on +5V near IP5306 output
-C4,100nF,Capacitor_SMD:C_0805_2012Metric,HF decoupling at XIAO 3V3 pin
-J1,SPK_OUT_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Speaker output (wires from MAX98357A SPK+/SPK- pads)
+C1,1000uF/25V,Capacitor_THT:CP_Radial_D8.0mm_P3.50mm,Bulk on +14V_SW (TAS5805M Vcc)
+C2,100nF,Capacitor_SMD:C_0805_2012Metric,HF bypass on +14V_SW
+C3,22uF/25V,Capacitor_SMD:C_1206_3216Metric,Local Vcc decoupling at TAS5805M (omit if breakout has its own)
+C4,10uF,Capacitor_SMD:C_0805_2012Metric,Buck output bulk on +5V
+C5,100nF,Capacitor_SMD:C_0805_2012Metric,HF decoupling at XIAO 3V3 pin
+C6,100nF,Capacitor_SMD:C_0805_2012Metric,I2C SDA ESD bypass (optional)
+C7,100nF,Capacitor_SMD:C_0805_2012Metric,I2C SCL ESD bypass (optional)
+J1,SPK_L_JSTXH2,Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,Left speaker output (JST-XH 2-pin)
+J2,SPK_R_JSTXH2,Connector_JST:JST_XH_B2B-XH-A_1x02_P2.50mm_Vertical,Right speaker output (JST-XH 2-pin)
+J_BAL,JSTXH_5pin_Balance,Connector_JST:JST_XH_B5B-XH-A_1x05_P2.50mm_Vertical,5-pin JST-XH balance harness (RC LiPo standard pin order)
+J_BAT,XT60_Connector,Connector:XT60_Connector,XT60 main battery connector (carries +14V_RAW and GND)
 J_BTN,BTN_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Off-board momentary push button SW2
-J_LED,LED_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Off-board status LED D1 (R1 lives on PCB)
-J_PWR,PWR_SW_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Off-board SPST slide switch SW1 (battery line)
+J_LED,LED_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Off-board status LED D1
+J_PWR,PWR_SW_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,"Off-board >=5A SPST switch SW1 (battery line, between BMS P+ and +14V_SW)"
 J_VOL,VOL_POT_JSTPH3,Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical,Off-board 10k volume pot RV1
-R1,470,Resistor_SMD:R_0805_2012Metric,LED current-limit resistor (470 ohm)
+R1,470,Resistor_SMD:R_0805_2012Metric,LED current-limit resistor
+R2,4.7k,Resistor_SMD:R_0805_2012Metric,I2C SDA pull-up to +3V3 (omit if amp breakout has its own)
+R3,4.7k,Resistor_SMD:R_0805_2012Metric,I2C SCL pull-up to +3V3 (omit if amp breakout has its own)
+R4,10k,Resistor_SMD:R_0805_2012Metric,TAS5805M PDN pull-up to +3V3 (always-on)
 U1,XIAO_ESP32S3,Seeed Studio:XIAO-ESP32-S3,Seeed XIAO ESP32-S3 module
-U2,MAX98357A,Connector_PinHeader_2.54mm:PinHeader_1x07_P2.54mm_Vertical,MAX98357A I2S amplifier breakout
+U2,TAS5805M_Breakout,Connector_PinHeader_2.54mm:PinHeader_1x14_P2.54mm_Vertical,TAS5805M stereo I2S class-D amp breakout (DFRobot DFR0721 or equivalent)
 U3,microSD_Breakout,Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical,"microSD card breakout, SPI mode (3V3 logic)"
-U4,IP5306_Module,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,IP5306 18650 charger + 5V boost module (USB-C in)
+U4,IP2368_Module,Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical,IP2368 USB-C PD all-in-one 4S Li-ion charger module (DFR1015 or AliExpress equivalent)
+U5,Buck_5V_Module,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,Adjustable buck converter set to 5.0V (MP1584 or LM2596 module)

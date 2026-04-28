@@ -77,28 +77,44 @@ After you've drawn the PCB, commit:
 
 ## Verification before fab
 
-- [ ] DRC passes with **no errors** (warnings about single-node nets on
-      `SPK+`/`SPK-` are expected — those wires go to a connector that's
-      bridged off-board to the MAX98357A's onboard speaker terminal).
+- [ ] DRC passes with **no errors**.
 - [ ] Visually verify GND pour completeness on B.Cu.
-- [ ] Visually verify nothing routes under the XIAO ESP32-S3 antenna
-      (right end of the module, opposite USB-C).
-- [ ] Battery polarity at BT1 matches the holder silkscreen.
-- [ ] IP5306 footprint orientation matches the actual module you bought
-      (4-pin vs 6-pin variants exist — adjust `gen_netlist.py` if yours is
-      different and re-import).
-- [ ] Order of pins on the J_PWR / J_VOL / J_BTN / J_LED off-board JSTs
-      matches your harness.
+- [ ] Visually verify the +14V_SW pour reaches TAS5805M Vcc and buck
+      VIN+ with adequate copper (≥ 0.8 mm equivalent or pour zone).
+- [ ] Verify the LED ratsnest shows GPIO38 connected — if KiCad shows
+      U1 pin 15 as a no-connect, your Seeed footprint version doesn't
+      include the bottom pad. Drop a small via on the carrier PCB under
+      the module's GPIO38 bottom pad and route LED_DRV from there.
+- [ ] Verify nothing routes under the XIAO ESP32-S3 antenna (opposite
+      end from USB-C).
+- [ ] XT60 polarity at J_BAT matches the connector keying.
+- [ ] J_BAL pin 1 = pack negative; pin 5 = pack positive (RC LiPo
+      standard order). Match your balance harness.
+- [ ] IP2368 module pinout matches what `gen_netlist.py` declares —
+      different vendors use different pad layouts. If yours differs,
+      edit the U4 block in `gen_netlist.py` and re-run.
+- [ ] TAS5805M breakout pinout (10 control + 4 speaker) matches what
+      `gen_netlist.py` declares. DFRobot DFR0721 is the reference; clones
+      may differ.
+- [ ] Order of pins on each JST (J_PWR / J_VOL / J_BTN / J_LED / J_BAL)
+      matches your harnesses.
 
 ## Known limitations / things to verify on the bench
 
-- **MAX98357A breakout speaker terminal**: the breakout has SPK+/SPK- on a
-  separate 2-pin terminal block (not on the 7-pin header). The netlist
-  models J1 as a standalone connector that you'll wire from the breakout's
-  on-board speaker pads to your speaker. If you'd rather solder the speaker
-  wires directly to the breakout, omit J1 in your layout.
-- **IP5306 module variants**: pinout in `MODULES.md` is for the most common
-  hobby form factor. Confirm against your actual module's silkscreen.
-- **U1 pin numbering**: the netlist uses logical pin numbers 1-14. KiCad
-  will match these to whatever the Seeed footprint expects — verify in the
-  ratsnest after import.
+- **TAS5805M breakout pinout**: the netlist models a generic 14-pin header
+  layout. The DFRobot DFR0721 silkscreen is the reference. If your breakout
+  arrives with a different pin order (especially SDA/SCL position or which
+  side speaker outputs come out), edit the U2 block in `gen_netlist.py`,
+  re-run, and re-import.
+- **IP2368 module variants**: pinout in `MODULES.md` is for the most common
+  hobby form factor. Some modules expose 6 pins, others 8 (split charge /
+  discharge). Confirm against your actual module's silkscreen.
+- **GPIO38 LED bottom-pad access**: requires a via on the carrier PCB
+  under the module's bottom pad. The Seeed `XIAO-ESP32-S3` footprint
+  includes the bottom pad; if your library version doesn't, you can
+  reassign the LED to the unused GPIO44/D7 (currently I²C SCL — swap
+  with a different free GPIO).
+- **U1 pin numbering**: the netlist uses logical pin numbers 1–15. KiCad
+  will match these to whatever the Seeed footprint expects — verify the
+  ratsnest after import; if the labels look wrong, your Seeed library
+  version uses different pad numbering.
