@@ -1,122 +1,137 @@
 # PCB plan
 
-Target: a 2-layer module-carrier board you can order from JLCPCB or PCBWay.
-Almost no SMD soldering required — modules drop in via 2.54 mm headers, the
-only "real" SMD parts are 0805 caps, an 0805 resistor, and (optionally) a
-ferrite bead.
+Target: a 2-layer module-carrier board you can order from JLCPCB or
+PCBWay. **The 4 × 18650 pack lives in the enclosure, not on the PCB** —
+only the BMS, IP2368 charger, buck, amp, XIAO, and microSD ride along.
 
-This document is **the spec for the PCB**. Once parts arrive, draw the
-schematic and PCB in KiCad following the netlist (`NETLIST.md`) and the
-placement plan below. A KiCad project skeleton is provided in `pcb/`.
+This is the spec for the PCB. Once parts arrive, draw the schematic and
+PCB in KiCad following the netlist (`NETLIST.md`) and the placement plan
+below. A KiCad project skeleton + netlist generator is provided in
+`pcb/`.
 
 ## 1. Board outline
 
-**Size**: 80 × 55 mm rectangle, 1.6 mm thickness, 2 layers.
+**Size**: 110 × 75 mm rectangle, 1.6 mm thickness, 2 layers, **2 oz copper
+on the power layer recommended** (handles the 4S → amp current path).
 
 ```
-        80.0 mm
-   ┌──────────────────────────────────────┐
-   │ M3 mounting hole (φ3.2)         M3   │
-   │  ●                              ●    │
-   │                                       │   55.0 mm
-   │   (component placement plan below)    │
-   │                                       │
-   │  ●                              ●    │
-   │ M3                              M3   │
-   └──────────────────────────────────────┘
+              110 mm
+   ┌────────────────────────────────────────────────────┐
+   │ M3                                              M3 │
+   │  ●                                              ●  │
+   │                                                    │   75 mm
+   │   (component placement plan below)                 │
+   │                                                    │
+   │  ●                                              ●  │
+   │ M3                                              M3 │
+   └────────────────────────────────────────────────────┘
 ```
 
 - Four **M3 mounting holes**, φ3.2 mm, 5 mm in from each corner.
-- Internal cutout(s): none for v1. (If you mount the 18650 holder *on* the PCB,
-  it sits over solid copper / silkscreen — no cutout needed.)
+- USB-C cutout on the **right edge** for the IP2368 module.
+- USB-C cutout on the **bottom edge** for the XIAO module (programming).
+- Speaker output JSTs on the **left edge**.
+- Panel-wire JSTs (J_PWR, J_VOL, J_BTN, J_LED) on the **front edge**.
 
-If your enclosure is different, change only the outline in KiCad — the
-internal placement still works.
+Adjust dimensions to your enclosure — internal connections stay valid.
 
 ## 2. Layer plan
 
 | Layer | Use |
 |-------|-----|
-| **F.Cu** (top) | Module pads, signal traces, +5V short fan-out |
-| **B.Cu** (bottom) | GND fill (poured), a few crossover signals if needed |
-| **F.SilkS** | Reference designators, "VOL" / "BTN" / "LED" / "SPK+/-" labels, polarity arrows |
-| **F.Mask / B.Mask** | Standard openings |
+| **F.Cu** (top) | Module pads, signal traces, +3V3 / +5 V short fan-outs |
+| **B.Cu** (bottom) | **GND fill (poured)**, +14 V_SW power pour as a separate filled zone routed island, audio crossovers if needed |
+| **F.SilkS** | Reference designators, "L SPK" / "R SPK" / "VOL" / "BTN" / "LED" / "USB-C" labels, polarity arrows, "+14 V" warning near amp Vcc |
+| **F.Mask / B.Mask** | Standard openings, plus mask-open via for the GPIO38 LED probe |
 | **Edge.Cuts** | Outline + mounting holes |
 
-Single ground pour on B.Cu, stitched to top with vias around module
-ground pads and at the IP5306 input.
+GND pour on B.Cu (full plane), with a separate +14 V_SW filled zone on
+B.Cu in the area between IP2368/BMS-input and TAS5825M/buck inputs.
+Stitch GND with vias around module pads.
 
 ## 3. Component placement plan
 
-Looking at the **top** of the board (component side), USB-C ports facing
-**right**, speaker out on the **left**:
+Looking at the **top** of the board, USB-C ports facing **right** and
+**bottom**, speakers on the **left**:
 
 ```
-       ┌──────────────────────────────────────────────────────────────┐
-       │  ┌────────────┐                          ┌─────────────────┐ │
-       │  │ 18650 holder│                         │   IP5306 module │═│ ← USB-C
-       │  │   (H1, BT1) │                         │      (U4)       │═│   charge
-       │  │             │                         └─────────────────┘ │
-       │  └────────────┘                                              │
-       │                                                              │
-       │  ┌──────────────┐    ┌──────────────┐    ┌────────────────┐ │
-       │  │ MAX98357A U2 │    │  XIAO ESP32  │    │  microSD U3    │ │
-       │  │              │    │   -S3  (U1)  │═│  │                │ │
-       │  │   I2S DIN ←──┼────┼─ I2S out     │═│  │  SPI to U1     │ │
-       │  └──────────────┘    └──────────────┘    └────────────────┘ │
-       │       ↑↑                                                     │
-       │     SPK+ SPK- (J1, edge connector or screw terminal)         │
-       │  ┌────┐                                                      │
-       │  │ J1 │ ← speaker out                                        │
-       │  └────┘                                                      │
-       │                                                              │
-       │   J_PWR  J_VOL  J_BTN  J_LED                                 │
-       │   ┌──┐   ┌──┐   ┌──┐   ┌──┐                                  │
-       │   │  │   │  │   │  │   │  │   ← panel-wire JST-PH headers    │
-       │   └──┘   └──┘   └──┘   └──┘                                  │
-       └──────────────────────────────────────────────────────────────┘
+  ┌────────────────────────────────────────────────────────────────────┐
+  │ ┌──────────┐  ┌─────────┐    ┌───────────────────┐                 │
+  │ │   BMS    │  │  4S     │    │   IP2368 module   │═══ ← USB-C PD   │
+  │ │   30A    │  │ balance │    │  (charger + PD)   │═══   charge in  │
+  │ │          │  │  pads   │    └───────────────────┘                 │
+  │ └────┬─────┘  └─────────┘                                          │
+  │      │                                                              │
+  │      │   ┌─────────────────────────┐   ┌───────────┐               │
+  │      └──▶│  TAS5825M I²S amp (U2)  │   │ buck U5   │               │
+  │ J1   ◀───┤ stereo, BTL              │   │ 14V→5V    │               │
+  │ SPK_L│   │  C1 1000µF nearby       │   └───────────┘               │
+  │      ◀───┤                          │                                │
+  │ J2       │                          │                                │
+  │ SPK_R│   └─────────────────────────┘                                │
+  │      │                                                              │
+  │      │   ┌──────────────┐    ┌────────────────┐                    │
+  │      │   │  XIAO ESP32  │    │  microSD U3    │                    │
+  │      │   │   -S3  (U1)  │═│  │                │                    │
+  │      │   └──────────────┘    └────────────────┘                    │
+  │      │            ║                                                 │
+  │      │       USB-C (programming)                                    │
+  │      │                                                              │
+  │   J_PWR  J_VOL  J_BTN  J_LED         J_BAT (XT60)  J_BAL (5p XH)   │
+  │   ┌──┐   ┌──┐   ┌──┐   ┌──┐          ┌────┐        ┌──────┐       │
+  │   │  │   │  │   │  │   │  │          │    │        │      │       │
+  │   └──┘   └──┘   └──┘   └──┘          └────┘        └──────┘       │
+  └────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Why this arrangement
 
-- **18650 holder upper-left**: heaviest part; balances mass against the modules
-  on the right edge. Cell length runs along the long axis of the board.
-- **IP5306 upper-right with its USB-C facing the edge**: keeps the charging
-  port accessible on the enclosure side.
-- **XIAO in the centre**: shortest possible I²S traces to the amp on its left
-  and SPI traces to the SD on its right. The XIAO's antenna end (opposite USB-C)
-  faces the bottom edge — keep a 5 mm copper keep-out under it.
-- **MAX98357A on the left**: speaker output `J1` is on the same side, so
-  speaker leads stay short and twisted.
-- **Panel-wire connectors (J_PWR, J_VOL, J_BTN, J_LED) along the bottom edge**:
-  one row of JST-PH headers makes wiring to the front panel of the enclosure
-  tidy.
+- **BMS upper-left**: short fat traces from XT60 (J_BAT) to BMS to SW1 to
+  the +14 V_SW pour. Carries the most current — keep paths short.
+- **IP2368 upper-right with USB-C facing the edge**: charging port
+  accessible on the enclosure side. Balance harness (J_BAL) is on the
+  bottom edge with short routing to the IP2368 BAL pads.
+- **TAS5825M centre-left, near the speaker connectors**: minimises
+  speaker output trace length to J1/J2.
+- **Buck (U5) between IP2368 and TAS5825M area**: takes 14 V from the
+  +14 V_SW pour, outputs 5 V to a small +5 V trace running under the
+  XIAO.
+- **XIAO + microSD bottom-centre**: short I²S traces up to the TAS5825M,
+  short I²C traces up too. SD SPI is local to the XIAO.
+- **Panel-wire JSTs along bottom edge**: clean wiring to the front panel.
 
 ## 4. Routing guidelines
 
-| Net group | Recommended trace width | Notes |
-|-----------|------------------------|-------|
-| VBAT_SW, +5V (battery rails) | **0.6 mm (24 mil)** | Up to 2 A under charge / heavy bass. |
-| GND | pour on B.Cu | Single uninterrupted plane; stitch with vias. |
-| +3V3 | 0.4 mm (16 mil) | <500 mA. |
-| I²S (`I2S_BCLK`, `I2S_LRCLK`, `I2S_DOUT`) | 0.2 mm (8 mil), routed together | Keep all three within ~5 mm of each other and away from the antenna. Length-matching is not required at audio rates. |
-| SPI (`SD_*`) | 0.2 mm (8 mil) | Keep `SD_SCK` away from `I2S_BCLK`; ideally route them on different layers near the module pins. |
-| Pot, button, LED | 0.2 mm (8 mil) | Slow signals; route freely. |
-| Speaker out (SPK±) | 0.5 mm (20 mil) | Keep these two traces close together; if possible, **don't** put them on the bottom layer over the GND pour for the digital section — the magnetic-field return looks better with the dedicated SPK return adjacent. |
+| Net group | Trace width | Notes |
+|-----------|------------|-------|
+| **VBAT_4S, +14V_SW (battery → amp)** | **0.8 mm (32 mil)** or pour | Up to 4 A peak under heavy bass. Use a poured zone where possible. **2 oz copper on this layer.** |
+| **GND** | full pour on B.Cu | Single uninterrupted plane. Stitch with vias. |
+| **+5V** | 0.4 mm (16 mil) | < 500 mA. |
+| **+3V3** | 0.3 mm (12 mil) | < 200 mA. |
+| **I²S** (BCLK, LRCLK, DOUT) | 0.2 mm (8 mil), routed parallel | Keep all three within ~5 mm of each other and away from the antenna. |
+| **I²C** (SDA, SCL) | 0.2 mm (8 mil) | Slow signals; can route freely. Keep pull-up resistors close to TAS5825M end of the trace. |
+| **SPI** (SD_*) | 0.2 mm (8 mil) | Keep `SD_SCK` away from `I2S_BCLK`. |
+| **Pot, button, LED** | 0.2 mm (8 mil) | Slow signals. |
+| **Speaker outputs (SPK_L±, SPK_R±)** | **0.5 mm (20 mil)**, route adjacent | Treat each pair as a differential pair. **The TAS5825M is BTL** — both sides swing. Don't ground either. |
 
 ### EMI / cross-talk specifics
 
 1. **Antenna keep-out**: under and to the right of the antenna end of the
    XIAO ESP32-S3 module, leave a 5 mm × full-width copper-free keep-out on
-   both layers. Don't run traces underneath the antenna.
-2. **MAX98357A decoupling**: place C1 (10 µF) and C2 (100 nF) within 5 mm of
-   the Vin pin, on the **same** layer as the module, with a short via to GND.
-3. **Speaker-return discipline**: the MAX98357A is a class-D bridge; both
-   `SPK+` and `SPK-` swing. Treat them like a differential pair — twist the
-   wire pigtail and run the on-board traces side-by-side at 0.5 mm/0.5 mm.
-4. **Charge / boost noise on +5V**: if you hear hash through the speaker,
-   populate `FB1` (ferrite bead) in series with MAX98357A Vin and add
-   `C5` (220 µF electrolytic) on the IP5306 5 V output.
+   both layers. **No traces under the antenna.**
+2. **TAS5825M decoupling**: place C1 (1000 µF) and C2 (100 nF) within 5 mm
+   of the Vcc pin. C3 (22 µF) sits even closer if your breakout doesn't
+   already include it. Short, fat returns to GND.
+3. **Speaker-output discipline**: the TAS5825M is class-D BTL, switching
+   at ~384 kHz. Keep each speaker pair (L+/L-, R+/R-) tightly coupled
+   on-board, twist the off-board wires, and consider the optional LC
+   filter (L1 + 1 µF) if your breakout doesn't already have one.
+4. **I²C pull-up location**: place R2 (SDA) and R3 (SCL) close to the
+   **TAS5825M end** of the trace, not the XIAO end. Low capacitance there
+   is more important.
+5. **Buck switching node**: the buck module has its own switching node
+   that can radiate. Keep it physically away (≥10 mm) from the XIAO
+   antenna and from the I²S bus.
 
 ## 5. Design rules (JLCPCB-compatible)
 
@@ -129,82 +144,95 @@ Looking at the **top** of the board (component side), USB-C ports facing
 | Annular ring | 0.15 mm |
 | Min hole-to-hole | 0.5 mm |
 | Edge-to-track | 0.3 mm |
-
-These match JLCPCB's free 2-layer process. Don't go below 6/6 mil unless you
-have a reason — it costs more and is harder to inspect.
+| **Copper weight** | **2 oz on top + bottom (recommended for 4S power path)** |
 
 ## 6. Fabrication output (gerbers)
 
-When the layout is done, export from KiCad:
+Same workflow as 1S build. Export from KiCad:
 
 **Plot → Gerbers**:
-- Layers: `F.Cu`, `B.Cu`, `F.Paste`, `B.Paste`, `F.Silkscreen`, `B.Silkscreen`,
-  `F.Mask`, `B.Mask`, `Edge.Cuts`
+- Layers: `F.Cu`, `B.Cu`, `F.Paste`, `B.Paste`, `F.Silkscreen`,
+  `B.Silkscreen`, `F.Mask`, `B.Mask`, `Edge.Cuts`
 - Format: Gerber X2
-- "Use Protel filename extensions": optional (JLCPCB accepts both)
 - Subtract soldermask from silkscreen: yes
 - Plot reference designators: yes (top side at minimum)
 
-**Drill files** (next button):
-- Format: Excellon
-- Drill units: mm
-- Mirror Y axis: no
-- Minimal header: no
-- PTH + NPTH in **separate files** (or merged — both are fine)
+**Drill files**:
+- Format: Excellon, mm
 
-Zip the resulting folder. Upload to JLCPCB:
+Zip and upload to JLCPCB. Settings:
 - Layers: 2
-- Dimensions: 80 × 55 mm
+- Dimensions: 110 × 75 mm
 - Thickness: 1.6 mm
 - Material: FR-4
 - Solder mask: any
-- Silkscreen: white (on green/red/blue/black mask) or black (on white mask)
-- Surface finish: HASL lead-free (cheap), ENIG (~$2 more, much nicer pads)
-- Quantity: 5 (minimum for the cheap tier)
+- Silkscreen: white (on green/red/blue/black) or black (on white)
+- Surface finish: HASL lead-free (cheap), ENIG (~$3 more, recommended)
+- **Copper weight: 2 oz top and bottom** (~$6 surcharge but worth it for the power path)
+- Quantity: 5
 
-Cost: typically **$5 board fab + $10 shipping** to the US (~2–5 days express,
-~3 weeks economy).
+Cost: typically **$8 board fab + $12 shipping** at 2 oz copper.
 
 ## 7. Assembly notes
 
-Order of assembly (lowest profile first):
-1. SMD passives on top side: C1, C2, C3, C4, R1 (and FB1 if populating).
-2. JST-PH headers along the bottom edge.
-3. Speaker connector J1.
-4. 2.54 mm headers for the modules — solder these flush to the PCB so the
-   module sits parallel.
-5. 18650 holder H1 (through-hole, big pins — solder with plenty of heat).
-6. Insert modules into headers (XIAO, MAX98357A, microSD, IP5306).
-7. **Do not insert the 18650 cell** until everything else is verified.
+### Order of assembly (lowest profile first)
+1. SMD passives on top: C1, C2, C3, C4, C5, C6, C7, R1, R2, R3, R4
+   (and L1/optional LC filter if not on the breakout).
+2. JST-PH headers along the front edge (J_PWR, J_VOL, J_BTN, J_LED).
+3. Speaker connectors J1, J2.
+4. XT60 (J_BAT) and JST-XH 5-pin (J_BAL).
+5. 2.54 mm headers for the modules — solder these flush so modules sit
+   parallel.
+6. Modules: XIAO, TAS5825M, microSD, IP2368, buck.
+7. **The BMS** sits on its own 2-pin or 4-pin header pads (depends on
+   your specific BMS — many wire directly via thick wires rather than a
+   header).
 
-### Bring-up
+### Bring-up procedure (do in this order)
 
-1. Visually inspect for solder bridges, especially around the XIAO castellated
-   pads.
-2. Confirm continuity GND ↔ all module GNDs with multimeter.
-3. Confirm no short between +5V and GND, between +3V3 and GND, between
-   `VBAT_SW+` and GND.
-4. Apply +5V to the 5V pad **manually** from a bench supply (current limit
-   100 mA): the XIAO 3V3 LED should illuminate; nothing should get warm.
-5. Insert the cell. Confirm the XIAO comes up. Watch on USB serial for the
-   captive-portal AP banner from the firmware.
+1. **Visual inspection**: solder bridges, especially XIAO castellated
+   pads and the GPIO38 via.
+2. **Continuity check**: GND ↔ all module GND pins. No short between
+   +14V_SW and GND. No short between +5V and GND. No short between +3V3
+   and GND.
+3. **Trim the buck output to 5.0 V**: with a bench supply at 14 V
+   feeding the +14V_SW node (via the SW1 throw side), measure VOUT of
+   the buck module and adjust the trim until it's exactly 5.0 V (give or
+   take 50 mV). *Do this **before** any other module is plugged in.*
+4. **Plug in modules**: XIAO, microSD breakout, TAS5825M, IP2368.
+5. **Power up via USB-C PD on the IP2368** (no battery yet): you should
+   see fuel-gauge LEDs flash on the IP2368, the XIAO's 3V3 LED come up,
+   and serial output on the XIAO USB-C port if connected to a host.
+6. **Build the 4S pack** (4 cells, BMS, balance harness, XT60 pigtail)
+   on a non-conductive surface with a multimeter handy. Verify pack
+   voltage at XT60 is 14–16 V. Verify each cell tap is within ±50 mV of
+   its neighbours.
+7. **Plug in the pack**: SW1 off → measure +14V_SW = 0 V. SW1 on →
+   measure +14V_SW = pack voltage. Listen / smell for anything weird.
+8. **Flash firmware**, upload web UI, listen for the captive-portal AP.
+9. **Connect speakers** (don't crank volume yet). Play a test track at
+   low volume; verify left and right channels independently with a
+   stereo file.
+10. **Run for an hour at moderate volume**, monitor amp Vcc decoupling
+    cap and BMS temperature. Anything > 60 °C wants investigation.
 
 ## 8. Where to draw all this
 
-The KiCad project skeleton is at [`pcb/esp-music-player.kicad_pro`](../pcb/).
-Open in **KiCad 8.x** (KiCad 7 will work but file format will get auto-upgraded).
+The KiCad project skeleton is at [`pcb/README.md`](../pcb/README.md). The
+netlist generator at [`pcb/gen_netlist.py`](../pcb/gen_netlist.py) emits
+an importable `.net` file — one click in KiCad's PCB editor populates
+all components and ratsnest connections.
 
 Recommended symbol/footprint sources:
 
 | Module | Library |
 |--------|---------|
-| XIAO ESP32-S3 | [Seeed_KiCad_Library](https://github.com/Seeed-Studio/OPL_Kicad_Library) — symbol `XIAO-ESP32S3`, footprint `XIAO-ESP32-S3` |
-| MAX98357A breakout | KiCad built-in `Connector_Generic:Conn_01x07_2.54mm` (treat as a 7-pin header) |
+| XIAO ESP32-S3 | [Seeed_KiCad_Library](https://github.com/Seeed-Studio/OPL_Kicad_Library) |
+| TAS5825M breakout | `Connector_Generic:Conn_01x10_2.54mm` (treat as a 10-pin header — pin order matches your specific breakout) |
 | microSD breakout | `Connector_Generic:Conn_01x06_2.54mm` |
-| IP5306 module | `Connector_Generic:Conn_01x04_2.54mm` (or x06 depending on the module) |
-| 18650 holder Keystone 1042 | KiCad built-in `Battery:BatteryHolder_Keystone_1042_1x18650` |
+| IP2368 module | `Connector_Generic:Conn_01x06_2.54mm` (or x08 — module-dependent) |
+| Buck (MP1584 module) | `Connector_Generic:Conn_01x04_2.54mm` |
+| BMS | `Connector_Generic:Conn_01x06` (B+, B-, B1, B2, B3, P+) — wire P- directly to GND |
+| XT60 connector | KiCad built-in or `Connector:XT60` from a hobby library |
+| JST-XH 5-pin balance | `Connector_JST:JST_XH_B5B-XH-A_1x05_P2.50mm_Vertical` |
 | Pot, switch, button, LED | Built-in KiCad libraries |
-
-Use the **netlist** in `NETLIST.md` as your verification — after drawing the
-schematic, run KiCad's ERC and the netlist that comes out should match line
-for line.

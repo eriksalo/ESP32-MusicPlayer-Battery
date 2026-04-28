@@ -1,48 +1,75 @@
 # Schematic / wiring notes
 
-This is an ASCII reference for prototyping on a breadboard or for laying out
-the carrier PCB. A KiCad project will live under `pcb/` once the prototype is
-verified on hardware.
+ASCII reference for prototyping on the bench or for laying out the
+carrier PCB. The KiCad project lives under `pcb/` (drawn locally —
+see `pcb/README.md`).
 
 ## Power chain
 
 ```
-   18650 (+)──┬──[ SW1 ]──┬─ IP5306 BAT+
-              │            │
-              └ protection inside IP5306
-                           ▼
-                 IP5306 5V-OUT ──── 5V rail ─────────────┬──→ XIAO ESP32-S3 5V pin (USB pin)
-                                                         ├──→ MAX98357A Vin
-                                                         └──→ microSD breakout Vcc (if 5V-tolerant)
-                                                                  ↑
-                       (most microSD modules want 3V3, take from XIAO 3V3 pin instead)
+       USB-C PD                                        SW1 (≥5A)
+   (host charger)                                        │
+        ║                                                │
+        ▼                                                │
+   ┌─────────────────────────────┐                       │
+   │  IP2368 USB-C PD module     │                       │
+   │   - PD trigger (5/9/15/20V) │                       │
+   │   - 4S CC/CV charger        │                       │
+   │   - balance support         │                       │
+   │   - fuel-gauge LEDs         │                       │
+   └─────────────┬───────────────┘                       │
+       BAT+/-    │   BAL1..BAL3                          │
+                 ▼                                        │
+        ┌─────────────────────────┐                      │
+        │   4S 18650 pack         │                      │
+        │   BT1+── BT2+── BT3+── BT4+                     │
+        │   BT1-   BT2-   BT3-   BT4-                     │
+        │      │      │      │                             │
+        │   (cells in series, each tap to BMS+IP2368)      │
+        └─────────────┬───────────┘                       │
+                      ▼                                    │
+           ┌────────────────────┐                          │
+           │  4S 30A BMS        │                          │
+           │   - balance        │                          │
+           │   - over-discharge │                          │
+           │   - over-current   │                          │
+           └────┬───────────┬───┘                          │
+              P+│         P-│                              │
+                ├────────────[ SW1 ]────── +14V_SW ────────┤
+                │                          (~14.8V nom)    │
+                │                                          │
+                ▼                                          │
+              GND ─────────────── common ground bus        │
+                                                            │
+   +14V_SW ───┬─── TAS5825M Vcc  (C1 1000µF + C2 100nF + C3 22µF nearby)
+              │
+              └─── Buck U5 VIN ──→ +5V ──┬── XIAO 5V pin (LDO → +3V3)
+                                          │
+                                          └── microSD VCC
 
-   IP5306 USB-C IN ←── USB-C cable for charging
-   IP5306 GND ──── common ground bus
+   +3V3 (XIAO LDO) ──┬── microSD VCC
+                     ├── pot RV1 high lug
+                     ├── R2 (4.7k) → I²C SDA pull-up
+                     ├── R3 (4.7k) → I²C SCL pull-up
+                     └── R4 (10k)  → TAS5825M PDN  (always-on)
 ```
 
-Notes:
-- `SW1` is a SPST in series with the cell so the IP5306 boost itself is also
-  switched off (otherwise the boost idles ~1–5 mA continuously, which kills the
-  battery in storage).
-- The XIAO ESP32-S3 has its own USB-C connector for **flashing and serial
-  debug**; it can also be used to power the board (the on-board LDO regulates
-  to 3V3). For battery operation you feed 5V into the 5V pin from the IP5306.
-- If you want both the XIAO USB-C **and** the IP5306 USB-C live simultaneously
-  without back-feeding, add a Schottky on the IP5306 5V output.
-
-## Audio (I²S)
+## Audio (I²S + I²C)
 
 ```
-   XIAO  ──── BCLK  (GPIO4) ──→ MAX98357A  BCLK
-   XIAO  ──── LRC   (GPIO5) ──→ MAX98357A  LRC
-   XIAO  ──── DOUT  (GPIO6) ──→ MAX98357A  DIN
-   5V    ────────────────────→ MAX98357A  Vin    (+ 100 nF + 10 µF decoupling)
-   GND   ────────────────────→ MAX98357A  GND
-                              MAX98357A  GAIN  ── leave floating (9 dB)
-                              MAX98357A  SD/MODE ── tie to Vin (always on, mono = L+R)
-                              MAX98357A  OUT+ ──┐
-                              MAX98357A  OUT-  ─┘──→ 4Ω 5W speaker (twisted pair to reduce EMI)
+   XIAO  ──── BCLK   (GPIO4) ──→ TAS5825M  BCLK
+   XIAO  ──── LRCLK  (GPIO5) ──→ TAS5825M  LRCLK
+   XIAO  ──── SDIN   (GPIO6) ──→ TAS5825M  SDIN
+   XIAO  ──── SDA    (GPIO43) ↔ TAS5825M  SDA   (pull-up to +3V3 via R2)
+   XIAO  ──── SCL    (GPIO44) ──→ TAS5825M  SCL   (pull-up to +3V3 via R3)
+
+   +3V3 ── R4 (10k) ──→ TAS5825M  PDN     (always on)
+   GND  ──→ TAS5825M  ADR              (I²C addr 0x4C)
+
+   TAS5825M  SPK_L+ ──→ J1 pin 1 ──→ Left speaker (twisted pair to chassis)
+   TAS5825M  SPK_L- ──→ J1 pin 2
+   TAS5825M  SPK_R+ ──→ J2 pin 1 ──→ Right speaker
+   TAS5825M  SPK_R- ──→ J2 pin 2
 ```
 
 ## SD card (SPI)
@@ -52,45 +79,84 @@ Notes:
    XIAO ── MISO  (GPIO8) ←── SD DO
    XIAO ── MOSI  (GPIO9) ──→ SD DI
    XIAO ── CS    (GPIO3) ──→ SD CS
-   3V3 / GND from XIAO
+   +3V3 / GND from XIAO
 ```
-
-The firmware initialises SPI at 20 MHz; if you see CRC errors, lower it in
-`src/main.cpp` (`SD.begin(PIN_SD_CS, SPI, 20000000)` → `4000000`).
 
 ## Controls and indicator
 
 ```
    3V3 ── pot end  ┐
-                   ├── 10 kΩ pot, wiper → XIAO D0 (GPIO1)
+                   ├── 10 kΩ pot RV1, wiper → XIAO D0 (GPIO1)
    GND ── pot end  ┘
+                       (off-board on J_VOL JST-PH 3-pin)
 
-   XIAO D1 (GPIO2, INPUT_PULLUP) ── tactile button ── GND
+   XIAO D1 (GPIO2, INPUT_PULLUP) ── SW2 ── GND
+                       (off-board on J_BTN JST-PH 2-pin)
 
-   XIAO D6 (GPIO43) ── 470 Ω ── LED anode; cathode → GND
+   XIAO GPIO38 (bottom pad) ── R1 (470 Ω) ── D1 anode ── GND
+                       (R1 on PCB; LED is on J_LED JST-PH 2-pin)
 ```
 
 ## Layout / EMI tips
 
-- Keep the I²S clock traces (BCLK, LRC) short and away from the antenna end of
-  the XIAO module.
-- Run the speaker leads as a twisted pair; don't share ground with the digital
-  return path on the same trace.
-- Decouple MAX98357A Vin with **10 µF + 100 nF** placed within ~5 mm of its
-  Vin pin. Without this you may hear the SD card seek noise through the
-  speaker.
-- The XIAO ESP32-S3 antenna is on the end opposite USB-C; leave a clear
-  keep-out around it on the carrier PCB.
+- **Antenna keep-out** under the XIAO (opposite USB-C end). 5 mm clear of
+  copper on both layers.
+- **TAS5825M Vcc decoupling**: C1 (1000 µF), C2 (100 nF), C3 (22 µF) all
+  within 5 mm of the Vcc pin. Short, fat returns to GND.
+- **Speaker leads** as twisted pairs from J1/J2 to the speakers.
+- **I²C pull-ups** close to the TAS5825M end of the trace.
+- **Buck switching node** physically away from the XIAO antenna and the
+  I²S bus.
+- **GND plane** continuous on B.Cu — don't carve it up with traces.
+- **2 oz copper** on top + bottom for the 4S → amp current path.
 
-## Future PCB notes
+## Battery wiring outside the PCB
 
-When laying out the KiCad board:
+```
+                  XT60 (J_BAT)
+                   │ │
+                   │ └── BMS B-/P- (= GND)
+                   └──── BMS P+ ── carrier PCB +14V (through SW1)
 
-- Put the **module footprints as castellated edge cutouts** so the modules
-  sit flush. JLCPCB/PCBWay handle this fine in 2-layer.
-- A panel-mount 10 kΩ pot, slide switch, and 3.5 mm tactile button can all
-  be wired off the PCB if the enclosure dictates.
-- If you prefer SMD instead of breakouts: MAX98357A is a TQFN-16 you can
-  hand-solder with a hot-air station, and the IP5306 functionality can be
-  collapsed to TP4056 + DW01 + MT3608 SOIC parts. Keep the IP5306 module
-  for the first revision.
+   4S pack:
+      BT1+ ── BMS B+ ── balance plug pin 5 (top) ── IP2368 BAT+
+      BT1- = BT2+ ────── balance plug pin 4 ─────── IP2368 BAL3
+      BT2- = BT3+ ────── balance plug pin 3 ─────── IP2368 BAL2
+      BT3- = BT4+ ────── balance plug pin 2 ─────── IP2368 BAL1
+      BT4- ─────── BMS B- ── balance plug pin 1 (bottom, GND)
+
+   The 5-pin JST-XH balance plug (J_BAL on the PCB) carries the four
+   cell taps + ground to BOTH the IP2368 module (for charge balancing)
+   AND the BMS (for protection). In practice: one balance plug is
+   parallel-tapped to both modules, or each module has its own balance
+   plug into the pack.
+```
+
+## Future PCB / KiCad notes
+
+When laying out:
+- Use **castellated edge cutouts** for module footprints so modules sit
+  flush on the carrier (JLCPCB/PCBWay handle this in 2-layer fine).
+- The IP2368 module's USB-C connector should poke through a panel cutout
+  on the right edge.
+- The XIAO's USB-C should poke through a panel cutout on the bottom edge
+  (or be accessible by removing the back of the enclosure for occasional
+  reflashes).
+- **The 4 × 18650 pack does not sit on the PCB** — it lives in the
+  enclosure, wired to the carrier via the XT60 + balance harness.
+- A panel-mount slide / rocker switch (SW1), pot (RV1), button (SW2),
+  and LED (D1) are off-board and wired to the corresponding JST-PH
+  headers along the front edge.
+
+## When to step up to discrete
+
+If you want a v2 with no breakout modules:
+- TAS5825M is TQFN-32 — hand-solderable with hot air, plus an LC output
+  filter (4 × inductors + 4 × MLCCs).
+- IP2368 is QFN-40 — same difficulty as TAS5825M.
+- Buck: TPS54331 (SOIC-8) or LM2596 (TO-263).
+- BMS can be replaced by a discrete BQ77307 + protection FETs, but the
+  layout becomes substantial. Module is the right call for v1.
+
+For now, keep the modules — your board ends up with very few SMD parts
+(R1–R4, C1–C7) and stays solidly hand-buildable.

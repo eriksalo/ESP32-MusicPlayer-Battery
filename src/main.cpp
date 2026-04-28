@@ -1,6 +1,7 @@
 // ESP32-MusicPlayer-Battery
-//   Hardware: Seeed XIAO ESP32-S3 + MAX98357A I2S amp + microSD + IP5306 18650
-//   Features: SD MP3 playback, Wi-Fi captive-portal setup, web UI control,
+//   Hardware: Seeed XIAO ESP32-S3 + TAS5825M stereo I2S amp + microSD
+//             + 4S 18650 pack + IP2368 USB-C PD charger module
+//   Features: SD MP3 stereo playback, Wi-Fi captive-portal setup, web UI,
 //             firmware OTA (ElegantOTA), music upload over HTTP, pot volume,
 //             tactile-button track/album navigation, status LED.
 //
@@ -14,6 +15,7 @@
 //   3. Device reboots, joins Wi-Fi, advertises as http://esp-music.local/.
 
 #include <Arduino.h>
+#include <Wire.h>
 #include <WiFi.h>
 #include <WiFiManager.h>
 #include <ESPmDNS.h>
@@ -425,6 +427,51 @@ static void handleLed() {
   }
 }
 
+// -------------------------------------------------------------- TAS5825M init
+
+// Minimal I2C init for the TAS5825M stereo class-D amp. The chip's reset
+// defaults are already what we want (BTL stereo, I2S 32-slot, auto sample-rate
+// detect), so we only need to bring it out of HiZ and set a safe initial
+// volume. Volume tracking from the pot/web continues to use the audioI2S
+// software volume; this just unmutes the hardware path.
+//
+// Register reference (TI datasheet TAS5825M, page/book 0):
+//   0x00  PAGE
+//   0x02  DEVICE_CTRL_1   (default 0x00 = BTL, I2S, 32-bit slots)
+//   0x03  DEVICE_CTRL_2   (0x00=Deep Sleep, 0x01=Sleep, 0x02=HiZ, 0x03=Play,
+//                          bit4=mute)
+//   0x4C  DIG_VOL         (0x00=+24dB, 0x30=0dB, 0xFE=-103dB, 0xFF=mute)
+//   0x7F  BOOK
+static bool tas5825m_writeReg(uint8_t reg, uint8_t val) {
+  Wire.beginTransmission(TAS5825M_I2C_ADDR);
+  Wire.write(reg);
+  Wire.write(val);
+  return Wire.endTransmission() == 0;
+}
+
+static bool tas5825m_init() {
+  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, 400000);
+  delay(10);
+
+  // Probe first.
+  Wire.beginTransmission(TAS5825M_I2C_ADDR);
+  if (Wire.endTransmission() != 0) {
+    log_e("TAS5825M not found on I2C @ 0x%02X", TAS5825M_I2C_ADDR);
+    return false;
+  }
+
+  bool ok = true;
+  ok &= tas5825m_writeReg(0x00, 0x00);   // PAGE 0
+  ok &= tas5825m_writeReg(0x7F, 0x00);   // BOOK 0
+  ok &= tas5825m_writeReg(0x03, 0x10);   // DEVICE_CTRL_2: HiZ + mute (safe state)
+  delay(5);
+  ok &= tas5825m_writeReg(0x02, 0x00);   // DEVICE_CTRL_1: BTL stereo, I2S
+  ok &= tas5825m_writeReg(0x4C, 0x60);   // DIG_VOL: -24dB starting volume
+  ok &= tas5825m_writeReg(0x03, 0x03);   // DEVICE_CTRL_2: Play (unmute)
+  log_i("TAS5825M init %s", ok ? "OK" : "FAILED");
+  return ok;
+}
+
 // -------------------------------------------------------------- setup / loop
 
 void setup() {
@@ -436,6 +483,9 @@ void setup() {
   ledMode = LED_HEARTBEAT;
 
   if (!LittleFS.begin(true)) log_e("LittleFS mount failed");
+
+  // Bring up the amplifier before audio so it's ready to receive I2S.
+  tas5825m_init();
 
   // SD card on dedicated SPI bus (avoid conflicting with default VSPI defaults).
   SPI.begin(PIN_SD_SCK, PIN_SD_MISO, PIN_SD_MOSI, PIN_SD_CS);
