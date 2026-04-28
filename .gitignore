@@ -19,3 +19,9 @@ pcb/fp-info-cache
 pcb/_autosave-*
 pcb/*-backups/
 pcb/gerbers/
+
+# SKiDL leftover files (in case gen_netlist.py is run from repo root)
+/skidl_REPL.erc
+/skidl_REPL.log
+/gen_netlist.erc
+/gen_netlist.log
