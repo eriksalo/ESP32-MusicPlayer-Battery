@@ -1,0 +1,16 @@
+ref,value,footprint,description
+BT1,Battery_18650,Battery:BatteryHolder_Keystone_1042_1x18650,18650 cell + Keystone 1042 holder
+C1,10uF,Capacitor_SMD:C_0805_2012Metric,Bulk decoupling at MAX98357A Vin
+C2,100nF,Capacitor_SMD:C_0805_2012Metric,HF decoupling at MAX98357A Vin
+C3,10uF,Capacitor_SMD:C_0805_2012Metric,Bulk decoupling on +5V near IP5306 output
+C4,100nF,Capacitor_SMD:C_0805_2012Metric,HF decoupling at XIAO 3V3 pin
+J1,SPK_OUT_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Speaker output (wires from MAX98357A SPK+/SPK- pads)
+J_BTN,BTN_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Off-board momentary push button SW2
+J_LED,LED_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Off-board status LED D1 (R1 lives on PCB)
+J_PWR,PWR_SW_JSTPH2,Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical,Off-board SPST slide switch SW1 (battery line)
+J_VOL,VOL_POT_JSTPH3,Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical,Off-board 10k volume pot RV1
+R1,470,Resistor_SMD:R_0805_2012Metric,LED current-limit resistor (470 ohm)
+U1,XIAO_ESP32S3,Seeed Studio:XIAO-ESP32-S3,Seeed XIAO ESP32-S3 module
+U2,MAX98357A,Connector_PinHeader_2.54mm:PinHeader_1x07_P2.54mm_Vertical,MAX98357A I2S amplifier breakout
+U3,microSD_Breakout,Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical,"microSD card breakout, SPI mode (3V3 logic)"
+U4,IP5306_Module,Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical,IP5306 18650 charger + 5V boost module (USB-C in)

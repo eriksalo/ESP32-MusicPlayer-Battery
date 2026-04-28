@@ -1,131 +1,104 @@
-# `pcb/` — KiCad project
+# `pcb/` — KiCad design files
 
-This folder is where the KiCad design files live. It's intentionally
-**empty for now** — the design is fully specified in the docs, but the
-KiCad files themselves should be authored in KiCad (not hand-edited),
-because hand-written `.kicad_sch` / `.kicad_pcb` files are easy to
-silently corrupt without the tool to verify them.
+This folder contains everything you need to land a routable PCB in KiCad
+without drawing the schematic by hand.
 
-## Specification (read these first)
+## What's here
 
-The PCB is fully specified by three documents:
+| File | Purpose |
+|------|---------|
+| `gen_netlist.py` | Python script that generates the KiCad netlist + BOM. **This is the source of truth** for the connection list — mirrors `docs/NETLIST.md`. |
+| `esp-music-player.net` | KiCad-format netlist, importable into KiCad PCB Editor. Regenerate with `python3 pcb/gen_netlist.py`. |
+| `esp-music-player.bom.csv` | Plain-text bill of materials extracted from the netlist. |
+| (after you start) `esp-music-player.kicad_pro` / `.kicad_pcb` / `.kicad_sch` | KiCad project files — created by KiCad on first open. |
 
-1. [`../docs/BOM.md`](../docs/BOM.md) — exact parts and where to buy.
-2. [`../docs/MODULES.md`](../docs/MODULES.md) — pinouts and mechanical
-   dimensions of every module.
-3. [`../docs/NETLIST.md`](../docs/NETLIST.md) — every electrical net.
-4. [`../docs/PCB_PLAN.md`](../docs/PCB_PLAN.md) — board outline,
-   placement, layer plan, design rules, JLCPCB order spec.
+## Workflow (the short version)
 
-## Workflow to draw the board
+1. **Install KiCad 8.x.**
+2. **Add the Seeed library** (only required because the XIAO ESP32-S3 isn't
+   in KiCad's stock libs):
+   ```sh
+   git clone https://github.com/Seeed-Studio/OPL_Kicad_Library.git ~/kicad-libs/seeed
+   ```
+   In KiCad: *Preferences → Manage Symbol Libraries → Add* `~/kicad-libs/seeed/Seeed Studio.kicad_sym`
+   and *Manage Footprint Libraries → Add* `~/kicad-libs/seeed/Seeed Studio.pretty`.
+3. **Create a new project here**: *File → New Project →* save as
+   `pcb/esp-music-player.kicad_pro`.
+4. **Open the PCB Editor** (the icon labelled "PCB Editor" / pcbnew).
+5. **Import the netlist**: *File → Import Netlist → choose
+   `pcb/esp-music-player.net`*. Click *Update PCB*.
+   - KiCad creates 15 footprints, dropped in a stack at origin.
+   - All ratsnest connections (the thin yellow lines) are drawn from the
+     netlist — they encode all 18 nets.
+6. **Set the board outline** on `Edge.Cuts` per `docs/PCB_PLAN.md` §1
+   (80 × 55 mm rectangle, 4× M3 mounting holes).
+7. **Place** components per `docs/PCB_PLAN.md` §3.
+8. **Route** per `docs/PCB_PLAN.md` §4 (trace widths matter — 0.6 mm for
+   battery/+5V, 0.2 mm for signals, 0.5 mm for speaker).
+9. **DRC** (*Inspect → Design Rules Checker*); fix anything that flags.
+10. **Generate gerbers** per `docs/PCB_PLAN.md` §6, zip, upload to JLCPCB.
 
-### 1. Install KiCad 8.x
+## Why no schematic?
 
-- macOS: `brew install --cask kicad`
-- Linux: `sudo apt install kicad` (≥ 8.0) or use the official AppImage
-- Windows: download from <https://www.kicad.org/download/>
+Hand-authoring a `.kicad_sch` for 15 components requires embedding a full
+symbol library definition (graphics primitives + pins + properties for
+every symbol used) and laying out wires/labels with explicit coordinates.
+Without KiCad to validate, every typo silently breaks the file.
 
-### 2. Add the Seeed footprint/symbol library
+The netlist contains the same electrical information that the schematic
+would, so you can route the PCB from it directly. If you want a schematic
+for visual reference / future edits, draw one in KiCad afterwards —
+*Tools → Update Schematic from PCB* will back-annotate the wires.
 
-The XIAO ESP32-S3 isn't in KiCad's stock libraries.
+## When you change firmware pins
 
-```sh
-git clone https://github.com/Seeed-Studio/OPL_Kicad_Library.git ~/kicad-libs/seeed
-```
+If you change a pin assignment in `include/config.h`, also:
 
-In KiCad: **Preferences → Manage Symbol Libraries → Add (folder icon) →**
-point at `~/kicad-libs/seeed/Seeed Studio.kicad_sym`. Repeat for footprints
-(**Manage Footprint Libraries → Add → `Seeed Studio.pretty`**).
+1. Update the GPIO labels in `docs/PINMAP.md`.
+2. Update the corresponding net in `docs/NETLIST.md`.
+3. Update `NETS = [...]` in `pcb/gen_netlist.py`.
+4. Re-run `python3 pcb/gen_netlist.py`.
+5. In KiCad PCB Editor: *File → Import Netlist* again. KiCad will warn
+   about removed/changed connections — accept the changes.
 
-The XIAO ESP32-S3 symbol is named `XIAO-ESP32S3` and the footprint is
-`XIAO-ESP32-S3` (with the bottom castellated + bottom pad layout).
+## What to commit
 
-### 3. Create the project here
+After you've drawn the PCB, commit:
 
-In KiCad: **File → New Project →** save as
-`pcb/esp-music-player.kicad_pro`. Open the schematic editor.
+- `esp-music-player.kicad_pro`
+- `esp-music-player.kicad_sch` (if you draw one)
+- `esp-music-player.kicad_pcb`
+- `esp-music-player.net` (regenerated)
+- `esp-music-player.bom.csv` (regenerated)
+- `gen_netlist.py` (already committed)
 
-### 4. Draw the schematic from `NETLIST.md`
+`.gitignore` already excludes the local/derived files
+(`.kicad_prl`, `fp-info-cache`, `_autosave-*`, `*-backups/`, `gerbers/`).
 
-Place these symbols (use built-in KiCad libraries unless noted):
+## Verification before fab
 
-| Ref | Symbol | Library |
-|-----|--------|---------|
-| U1 | `XIAO-ESP32S3` | Seeed Studio (added above) |
-| U2 | `Conn_01x07_Female` | Connector_Generic |
-| U3 | `Conn_01x06_Female` | Connector_Generic |
-| U4 | `Conn_01x04_Female` | Connector_Generic *(or x06 — match your IP5306 module)* |
-| BT1 / H1 | `BatteryHolder_Keystone_1042_1x18650` | Battery |
-| RV1 | `R_Potentiometer` | Device |
-| SW1 | `SW_SPDT` *(use as SPST)* | Switch |
-| SW2 | `SW_Push` | Switch |
-| D1 | `LED` | Device |
-| R1 | `R` | Device |
-| C1, C3 | `C` (10 µF) | Device |
-| C2, C4 | `C` (100 nF) | Device |
-| FB1 *(optional)* | `Ferrite_Bead` | Device |
-| J1 | `Conn_01x02_Female` | Connector_Generic |
-| J_PWR / J_VOL / J_BTN / J_LED | `Conn_01x02` / `Conn_01x03` etc. | Connector_Generic |
+- [ ] DRC passes with **no errors** (warnings about single-node nets on
+      `SPK+`/`SPK-` are expected — those wires go to a connector that's
+      bridged off-board to the MAX98357A's onboard speaker terminal).
+- [ ] Visually verify GND pour completeness on B.Cu.
+- [ ] Visually verify nothing routes under the XIAO ESP32-S3 antenna
+      (right end of the module, opposite USB-C).
+- [ ] Battery polarity at BT1 matches the holder silkscreen.
+- [ ] IP5306 footprint orientation matches the actual module you bought
+      (4-pin vs 6-pin variants exist — adjust `gen_netlist.py` if yours is
+      different and re-import).
+- [ ] Order of pins on the J_PWR / J_VOL / J_BTN / J_LED off-board JSTs
+      matches your harness.
 
-Wire them per `NETLIST.md`. Add **power flags** on `+5V` and `+3V3` so ERC
-doesn't complain. Save (`Ctrl-S`), then **Tools → Electrical Rules Check**.
-Fix any unconnected-pin errors before proceeding.
+## Known limitations / things to verify on the bench
 
-### 5. Assign footprints
-
-**Tools → Assign Footprints** (or `Ctrl-Shift-F`). Match every symbol to a
-footprint:
-
-- U1: `Seeed Studio:XIAO-ESP32-S3`
-- U2, U3, U4: `Connector_PinHeader_2.54mm:PinHeader_1x07_P2.54mm_Vertical`
-  (and 1x06 / 1x04 variants)
-- BT1/H1: `Battery:BatteryHolder_Keystone_1042_1x18650`
-- RV1: `Potentiometer_THT:Potentiometer_Bourns_PDB181-K_Vertical`
-  (or whatever fits the panel pot you ordered — for **panel-wired** pots,
-  use a 3-pin JST-PH `Connector_JST:JST_PH_B3B-PH-K_1x03_P2.00mm_Vertical`
-  on the PCB instead and wire to the pot off-board)
-- SW1: 3-pin JST-PH or solder pads
-- SW2: 2-pin JST-PH
-- D1: 2-pin JST-PH (panel-wired) or `LED_THT:LED_D5.0mm`
-- R1, C1–C4: `Resistor_SMD:R_0805_2012Metric` / `Capacitor_SMD:C_0805_2012Metric`
-- J1: `Connector_JST:JST_PH_B2B-PH-K_1x02_P2.00mm_Vertical`
-- J_PWR/etc: same JST-PH family
-
-### 6. Layout the PCB
-
-**Tools → Update PCB from Schematic**. Follow `PCB_PLAN.md` §3 for
-placement and §4 for routing widths. Recommended order:
-
-1. Set the board outline on `Edge.Cuts`: 80 × 55 mm rectangle, four M3 holes.
-2. Place the big modules first (XIAO centre, IP5306 right, 18650 holder
-   left, MAX98357A left of XIAO, microSD right of XIAO).
-3. Place panel connectors along the bottom edge.
-4. Place SMD passives near their respective module Vin pins.
-5. Route power (`+5V`, `VBAT_SW`) at 0.6 mm.
-6. Route signals (I²S, SPI) at 0.2 mm.
-7. Route speaker output at 0.5 mm.
-8. Pour `GND` on B.Cu (Filled Zone, B.Cu, net `GND`).
-9. **Tools → Design Rules Check**. Fix any clearance / unconnected errors.
-
-### 7. Generate fab outputs
-
-Follow `PCB_PLAN.md` §6. Resulting `.zip` of gerbers + drills uploads
-directly to JLCPCB / PCBWay.
-
-## What ends up in this folder
-
-After you save the project, this folder will contain:
-
-```
-pcb/
-├── esp-music-player.kicad_pro
-├── esp-music-player.kicad_sch
-├── esp-music-player.kicad_pcb
-├── esp-music-player.kicad_prl     (local project state — gitignore-able)
-├── fp-info-cache                  (local — gitignore-able)
-└── gerbers/                       (export output for JLCPCB)
-```
-
-Commit the `.kicad_pro`, `.kicad_sch`, `.kicad_pcb`, and any custom
-symbol/footprint libraries. Don't commit `.kicad_prl`, `fp-info-cache`,
-or `gerbers/` — those are derived.
+- **MAX98357A breakout speaker terminal**: the breakout has SPK+/SPK- on a
+  separate 2-pin terminal block (not on the 7-pin header). The netlist
+  models J1 as a standalone connector that you'll wire from the breakout's
+  on-board speaker pads to your speaker. If you'd rather solder the speaker
+  wires directly to the breakout, omit J1 in your layout.
+- **IP5306 module variants**: pinout in `MODULES.md` is for the most common
+  hobby form factor. Confirm against your actual module's silkscreen.
+- **U1 pin numbering**: the netlist uses logical pin numbers 1-14. KiCad
+  will match these to whatever the Seeed footprint expects — verify in the
+  ratsnest after import.
