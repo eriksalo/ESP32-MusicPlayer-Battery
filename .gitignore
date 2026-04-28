@@ -1,0 +1,14 @@
+.pio/
+.pioenvs/
+.piolibdeps/
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+build/
+dist/
+node_modules/
+*.bin
+*.elf
+*.map

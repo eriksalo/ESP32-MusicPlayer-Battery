@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+  <title>ESP Music Player</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>ESP Music Player</h1>
+    <div id="status" class="status">connecting…</div>
+  </header>
+
+  <section class="now-playing">
+    <div class="title" id="np-title">—</div>
+    <div class="meta">
+      <span id="np-state">idle</span>
+      <span class="sep">·</span>
+      <span>vol</span>
+      <input id="vol" type="range" min="0" max="100" value="50">
+      <span id="vol-pct">50</span>
+    </div>
+    <div class="controls">
+      <button id="prev"       title="previous">⏮</button>
+      <button id="play"       title="play">▶</button>
+      <button id="pause"      title="pause">⏸</button>
+      <button id="next"       title="next">⏭</button>
+      <button id="next-album" title="next album">⏭⏭</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Library <button id="rescan" class="ghost" title="rescan SD">↻</button></h2>
+    <div id="library" class="library">loading…</div>
+  </section>
+
+  <section>
+    <h2>Upload music</h2>
+    <form id="upload-form">
+      <label>Album <input name="album" type="text" value="Uploads" required></label>
+      <input name="file" type="file" accept="audio/*" multiple required>
+      <button type="submit">upload</button>
+      <progress id="upload-progress" value="0" max="100" hidden></progress>
+    </form>
+  </section>
+
+  <section>
+    <h2>System</h2>
+    <a class="btn" href="/update">firmware OTA</a>
+    <button id="wifi-reset" class="btn warn">forget Wi-Fi</button>
+  </section>
+
+  <footer>
+    <small id="footer-info"></small>
+  </footer>
+
+  <script src="/app.js"></script>
+</body>
+</html>
