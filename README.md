@@ -98,28 +98,48 @@ Two ways:
 
 ```
 .
-├── platformio.ini       # build config (target: seeed_xiao_esp32s3)
-├── include/config.h     # pin map and tunables
+├── platformio.ini       # firmware build config (target: seeed_xiao_esp32s3)
+├── include/config.h     # pin map and firmware tunables
 ├── src/main.cpp         # firmware
 ├── data/                # web UI (uploaded to LittleFS via `pio run -t uploadfs`)
 │   ├── index.html
 │   ├── app.js
 │   └── style.css
-├── docs/
-│   ├── BOM.md           # parts list with rough pricing
-│   ├── PINMAP.md        # GPIO assignments
-│   └── SCHEMATIC.md     # ASCII wiring + design notes
+├── docs/                # hardware spec
+│   ├── BOM.md           # parts list with concrete SKUs and distributor links
+│   ├── MODULES.md       # pinouts and mechanical dimensions of each module
+│   ├── NETLIST.md       # every electrical net (source of truth for the schematic)
+│   ├── PINMAP.md        # MCU GPIO assignments
+│   ├── PCB_PLAN.md      # board outline, placement, layer plan, JLCPCB order spec
+│   └── SCHEMATIC.md     # ASCII wiring + EMI/decoupling notes
+├── pcb/                 # KiCad project (draw locally — see pcb/README.md)
 └── README.md            # you are here
 ```
+
+## Hardware-first checklist
+
+If you're starting from parts, follow this order:
+
+1. **Order parts** using [`docs/BOM.md`](docs/BOM.md). Sanity-check the
+   "before you buy" list at the bottom.
+2. **Draw the schematic and PCB** in KiCad using
+   [`docs/NETLIST.md`](docs/NETLIST.md) and
+   [`docs/PCB_PLAN.md`](docs/PCB_PLAN.md). Skeleton + step-by-step in
+   [`pcb/README.md`](pcb/README.md).
+3. **Order the PCB** from JLCPCB / PCBWay using the gerbers exported from
+   KiCad (see `docs/PCB_PLAN.md` §6).
+4. **Assemble** following `docs/PCB_PLAN.md` §7. Bring up on a bench supply
+   before inserting the cell.
+5. **Flash firmware + web UI** (see *Build & flash* above).
 
 ## Roadmap / TODO
 
 - [ ] Verify on hardware and adjust pin map / I²S timings as needed
+- [ ] Commit the KiCad project under `pcb/` after the schematic is drawn
 - [ ] Boot-time button hold to force Wi-Fi reset (no UI access required)
 - [ ] Persistent state (last played track, volume) in NVS
 - [ ] ID3 tag parsing for nicer track names
 - [ ] Battery voltage sensing on a free ADC + low-battery LED pattern
-- [ ] KiCad PCB project under `pcb/`
 
 ## License
 

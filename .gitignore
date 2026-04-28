@@ -12,3 +12,10 @@ node_modules/
 *.bin
 *.elf
 *.map
+
+# KiCad local / derived files
+pcb/*.kicad_prl
+pcb/fp-info-cache
+pcb/_autosave-*
+pcb/*-backups/
+pcb/gerbers/
