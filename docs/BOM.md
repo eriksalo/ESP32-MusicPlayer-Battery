@@ -18,6 +18,26 @@ weeks. Prices in USD ~2026, indicative only.
 > Buy **two of every breakout module and connector** for a first build —
 > they're cheap and a desoldering job to recover one is a lost weekend.
 
+## 0. Procurement status
+
+Track what's ordered. Update as you go.
+
+| Ref | Part | Status | Notes |
+|-----|------|--------|-------|
+| **U3** | microSD breakout (5V/3V3 level shifter) | ✓ ordered | AliExpress |
+| **U4** | IP2368 4S USB-C PD bidirectional 100 W | ✓ ordered | AliExpress |
+| **U5** | MP1584EN buck (multi-pack) | ✓ ordered | AliExpress |
+| **BMS** | 4S 30 A balanced Li-ion BMS | ✓ ordered | AliExpress |
+| U1 | Seeed XIAO ESP32-S3 | — pending | |
+| U2 | PCM5102A I²S DAC (GY-PCM5102) | — pending | |
+| U2A | TPA3116D2 stereo amp module | — pending | |
+| BT1–4 | 4 × 18650 cells | — pending | |
+| H1 | 4-cell series 18650 holder | — pending | |
+| LS1, LS2 | 2 × 4 Ω 15–25 W full-range speakers | — pending | |
+| Connectors | XT60, JST-XH 5p balance, JST-XH 2p × 2, JST-PH 2/3p × 4 | — pending | |
+| SW1, SW2, RV1, D1, R1, C1–C4 | controls + passives | — pending | |
+| PCB | carrier board | — pending — wait until modules arrive to verify pinouts | |
+
 ## 1. Active modules
 
 | Ref | Part | Primary source | Generic / cheap | ~$ |
@@ -25,10 +45,10 @@ weeks. Prices in USD ~2026, indicative only.
 | **U1** | Seeed XIAO ESP32-S3 | [Seeed Studio product page](https://www.seeedstudio.com/XIAO-ESP32S3-p-5627.html) · [DigiKey search](https://www.digikey.com/en/products/result?keywords=XIAO+ESP32-S3) · [Mouser search](https://www.mouser.com/c/?q=XIAO%20ESP32-S3) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=Seeed+XIAO+ESP32-S3) (verify Bazaar/Seeed seller) | $7.50 |
 | **U2** | PCM5102A I²S DAC breakout (often labelled **GY-PCM5102**) | [Amazon search "PCM5102A I2S DAC"](https://www.amazon.com/s?k=PCM5102A+I2S+DAC+module) — many real listings | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=PCM5102A+I2S+DAC+module) | $4 / $2 |
 | **U2A** | TPA3116D2 stereo class-D amp module (analog input, 12-24 V) | [Amazon search "TPA3116D2 stereo amplifier board"](https://www.amazon.com/s?k=TPA3116D2+stereo+amplifier+board) | [AliExpress search "TPA3116D2 2x50W"](https://www.aliexpress.com/wholesale?SearchText=TPA3116D2+2x50W+amplifier+board) | $6 / $3 |
-| **U3** | microSD card breakout (SPI, 3V3) | [Adafruit #4682 product page](https://www.adafruit.com/product/4682) · [DigiKey search](https://www.digikey.com/en/products/result?keywords=adafruit%204682) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=micro+SD+card+module+3V3) | $4 / $1 |
-| **U4** | IP2368 USB-C PD 4S charger module (100 W) | **No verified Western distributor.** Only [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=IP2368+4S+100W+bidirectional+module). 3–4 week lead time. | (same) | $8 |
-| **U5** | 5 V buck converter module (4 S → 5 V @ 1 A) | [Pololu D24V10F5 product page](https://www.pololu.com/product/2831) | [AliExpress search "MP1584 mini buck"](https://www.aliexpress.com/wholesale?SearchText=MP1584+mini+360+buck+module) | $7 / $1 |
-| **BMS** | 4S 30 A balanced Li-ion BMS (common port) | [Battery Hookup search](https://batteryhookup.com/search?q=4S+BMS) · [Amazon search](https://www.amazon.com/s?k=4S+30A+BMS+balanced) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=4S+30A+balanced+BMS+18650) | $5 |
+| **U3** ✓ | microSD card breakout (SPI, 3V3) — **ordered: AliExpress "Micro SD module SPI with 5V/3V3 level converter"** | [Adafruit #4682 product page](https://www.adafruit.com/product/4682) · [DigiKey search](https://www.digikey.com/en/products/result?keywords=adafruit%204682) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=micro+SD+card+module+3V3) | $4 / $1 |
+| **U4** ✓ | IP2368 USB-C PD 4S charger module (100 W) — **ordered: AliExpress "IP2368 Bidirectional 100 W Buck-Boost Type-C 4S"** | **No verified Western distributor.** Only [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=IP2368+4S+100W+bidirectional+module). 3–4 week lead time. | (same) | $8 |
+| **U5** ✓ | 5 V buck converter module (4 S → 5 V @ 1 A) — **ordered: AliExpress "MP1584EN adjustable 3 A DC-DC step-down" (multi-pack)** | [Pololu D24V10F5 product page](https://www.pololu.com/product/2831) | [AliExpress search "MP1584 mini buck"](https://www.aliexpress.com/wholesale?SearchText=MP1584+mini+360+buck+module) | $7 / $1 |
+| **BMS** ✓ | 4S 30 A balanced Li-ion BMS (common port) — **ordered: AliExpress "3S/4S BMS 30 A 12 V/24 V Li-ion balance/equalizer" — 4S 30 A variant** | [Battery Hookup search](https://batteryhookup.com/search?q=4S+BMS) · [Amazon search](https://www.amazon.com/s?k=4S+30A+BMS+balanced) | [AliExpress search](https://www.aliexpress.com/wholesale?SearchText=4S+30A+balanced+BMS+18650) | $5 |
 
 > **Honest sourcing notes**:
 > - **U2 (PCM5102A) and U2A (TPA3116D2)**: both are real, Amazon-stocked
@@ -147,3 +167,30 @@ Carrier PCB from JLCPCB / PCBWay using design files in `pcb/` once routed.
 - [ ] You have a **USB-C PD charger ≥ 30 W**, ideally 65 W for fast charging.
 - [ ] You have a **balance plug** (5-pin JST-XH) on order with the BMS or pack.
 - [ ] USB-C **data** cable for XIAO programming.
+
+## 11. Pinout verification (do this when each board arrives)
+
+The four AliExpress modules vary by vendor. Before laying out the PCB,
+photograph the silkscreen of each board you actually receive and
+compare to what `pcb/gen_netlist.py` declares. Update the U3 / U4 / U5 /
+BMS pin maps in `gen_netlist.py` if they differ, then re-run:
+
+```sh
+python3 pcb/gen_netlist.py
+```
+
+Specifically, verify and note in `docs/photos/` (suggested):
+
+- [ ] **U3 microSD breakout**: 6-pin header order (likely
+      VCC/GND/CS/MOSI/SCK/MISO, but vendors vary — confirm against silkscreen).
+      With 5V/3V3 level converter, **safe to power from +5 V**.
+- [ ] **U4 IP2368**: pad labels for BAT+, BAT-, and the 3 balance taps
+      (BAL1/BAL2/BAL3). Some boards expose 6 pads, some 8. The 5 V output
+      pad (if present) is **NOT used** in our design — leave NC.
+- [ ] **U5 MP1584**: input vs output side (almost always silkscreened
+      "IN+/IN-" and "OUT+/OUT-"). Trim the on-board pot to **5.0 V**
+      output before soldering into the carrier PCB. Use a bench supply
+      at 14 V to set this; mark the pot with thread-lock when done.
+- [ ] **BMS 4S 30 A**: balance lead order. Standard RC LiPo order is
+      **B-, B1, B2, B3, B+** (5-wire pigtail). Confirm against the BMS
+      silkscreen and order to the JST-XH 5-pin connector matches.
